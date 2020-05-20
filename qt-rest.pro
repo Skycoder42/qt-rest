@@ -6,4 +6,5 @@ SUBDIRS += \
 OTHER_FILES += \
     qt-rest.pri \
     README.md \
-    LICENSE
+    LICENSE \
+    .github/workflows/build.yml
