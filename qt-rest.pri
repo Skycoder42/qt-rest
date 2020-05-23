@@ -1,8 +1,11 @@
 CONFIG += c++17 exceptions
 
-HEADERS +=
+HEADERS += \
+	$$PWD/src/restbuilder.h \
+	$$PWD/src/restbuilder_p.h
 
-SOURCES +=
+SOURCES += \
+	$$PWD/src/restbuilder.cpp
 
 INCLUDEPATH += $$PWD/src
 
