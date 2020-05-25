@@ -2,31 +2,35 @@
 #include "restbuilder_p.h"
 using namespace QtRest;
 
+RestBuilder::RestBuilder() :
+    d{new RestBuilderPrivate{}}
+{}
+
 RestBuilder::RestBuilder(QUrl baseUrl, QNetworkAccessManager *nam) :
-	d{new RestBuilderPrivate{}}
+    RestBuilder{}
 {
 	d->baseUrl = std::move(baseUrl);
-	d->nam = nam;
+    d->nam = nam;
 }
 
-RestBuilder::RestBuilder(RestBuilder &&other) noexcept
-{
-	d.swap(other.d);
-}
+RestBuilder::RestBuilder(const RestBuilder &other) = default;
 
-RestBuilder &RestBuilder::operator=(RestBuilder &&other) noexcept
-{
-	d.swap(other.d);
-	return *this;
-}
+RestBuilder::RestBuilder(RestBuilder &&other) noexcept = default;
 
-RestBuilder::~RestBuilder()
-{
+RestBuilder &RestBuilder::operator=(const RestBuilder &other) = default;
 
-}
+RestBuilder &RestBuilder::operator=(RestBuilder &&other) noexcept = default;
 
-RestBuilder &&RestBuilder::setNetworkAccessManager(QNetworkAccessManager *nam) &&
+RestBuilder::~RestBuilder() = default;
+
+RestBuilder &RestBuilder::setNetworkAccessManager(QNetworkAccessManager *nam)
 {
 	d->nam = nam;
-	return std::move(*this);
+    return *this;
+}
+
+RestBuilder &RestBuilder::setBaseUrl(QUrl baseUrl)
+{
+    d->baseUrl = std::move(baseUrl);
+    return *this;
 }
