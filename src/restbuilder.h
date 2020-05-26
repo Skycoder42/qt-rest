@@ -1,10 +1,12 @@
 #pragma once
 
 #include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
 #include <QtCore/QSharedData>
 #include <QtCore/QVersionNumber>
 #include <QtCore/QHash>
 #include <QtCore/QMimeType>
+#include <QtCore/QVariant>
 
 #include <QtNetwork/QNetworkAccessManager>
 
@@ -21,6 +23,14 @@ public:
     };
     Q_DECLARE_FLAGS(MergeFlags, MergeFlag)
 
+    enum class VersionFlag {
+        None = 0x00,
+        UseVPrefix = 0x01,
+        Normalize = 0x02,
+        Standard = (UseVPrefix | Normalize)
+    };
+    Q_DECLARE_FLAGS(VersionFlags, VersionFlag)
+
     using HeaderMap = QHash<QByteArray, QByteArray>;
     using AttributeMap = QHash<QNetworkRequest::Attribute, QVariant>;
 
@@ -35,24 +45,36 @@ public:
     RestBuilder &setNetworkAccessManager(QNetworkAccessManager *nam);
     RestBuilder &setBaseUrl(QUrl baseUrl);
 
-    RestBuilder &setScheme(QString scheme);
-    RestBuilder &setUser(QString user);
-    RestBuilder &setPassword(QString password);
-    RestBuilder &setCredentials(QString user, QString password = {});
-    RestBuilder &setHost(QString scheme);
+    RestBuilder &setScheme(const QString &scheme);
+    RestBuilder &setUser(const QString &user);
+    RestBuilder &setPassword(const QString &password);
+    RestBuilder &setCredentials(const QString &user, const QString &password = {});
+    RestBuilder &setHost(const QString &host);
     RestBuilder &setPort(quint16 port);
 
     RestBuilder &addPath(const QString &pathSegment);
-    RestBuilder &addPath(const QVersionNumber &pathSegment);
+    RestBuilder &addPath(const QVersionNumber &version, VersionFlags versionFlags = VersionFlag::Standard);
     RestBuilder &addPath(const QStringList &pathSegments);
     RestBuilder &trailingSlash(bool enable = true);
 
-    RestBuilder &addParameter(const QString &name, const QString &value);
-    RestBuilder &addParameters(const QUrlQuery &parameters);
-    RestBuilder &setFragment(QString fragment);
+    RestBuilder &addParameter(const QString &name, QVariant value);
+    template <typename T>
+    inline RestBuilder &addParameter(const QString &name, const T &value) {
+        return addParameter(name, QVariant::fromValue(value));
+    }
+    RestBuilder &addParameters(const QUrlQuery &parameters, bool replace = false);
+    RestBuilder &setFragment(QVariant fragment);
+    template <typename T>
+    inline RestBuilder &setFragment(const T &fragment) {
+        return setFragment(QVariant::fromValue(fragment));
+    }
 
-    RestBuilder &addHeader(const QByteArray &name, const QByteArray &value);
-    RestBuilder &addHeaders(const HeaderMap &headers);
+    RestBuilder &addHeader(const QLatin1String &name, QVariant value);
+    template <typename T>
+    inline RestBuilder &addHeader(const QLatin1String &name, const T &value) {
+        return addHeader(name, QVariant::fromValue(value));
+    }
+    RestBuilder &addHeaders(const HeaderMap &headers, bool replace = false);
 
     RestBuilder &updateFromRelativeUrl(const QUrl &url, MergeFlags mergeFlags = MergeFlag::None);
 
@@ -84,5 +106,6 @@ private:
 }
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QtRest::RestBuilder::MergeFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QtRest::RestBuilder::VersionFlags)
 Q_DECLARE_METATYPE(QtRest::RestBuilder)
 Q_DECLARE_TYPEINFO(QtRest::RestBuilder, Q_MOVABLE_TYPE);
