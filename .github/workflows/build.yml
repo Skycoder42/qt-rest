@@ -8,18 +8,18 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - 5.14.2
+          - 5.15.0
         platform:
           - gcc_64
           - android
           - wasm_32
-          - msvc2017_64
-          - msvc2017
-          - winrt_x64_msvc2017
-          - winrt_x86_msvc2017
-          - winrt_armv7_msvc2017
-          - mingw73_64
-          - mingw73_32
+          - msvc2019_64
+          - msvc2019
+          - winrt_x64_msvc2019
+          - winrt_x86_msvc2019
+          - winrt_armv7_msvc2019
+          - mingw81_64
+          - mingw81_32
           - clang_64
           - ios
 
@@ -31,19 +31,19 @@ jobs:
           - platform: wasm_32
             os: ubuntu-latest
             emsdk: sdk-fastcomp-1.38.27-64bit
-          - platform: msvc2017_64
+          - platform: msvc2019_64
             os: windows-latest
-          - platform: msvc2017
+          - platform: msvc2019
             os: windows-latest
-          - platform: winrt_x64_msvc2017
+          - platform: winrt_x64_msvc2019
             os: windows-latest
-          - platform: winrt_x86_msvc2017
+          - platform: winrt_x86_msvc2019
             os: windows-latest
-          - platform: winrt_armv7_msvc2017
-            os: windows-2016
-          - platform: mingw73_64
+          - platform: winrt_armv7_msvc2019
             os: windows-latest
-          - platform: mingw73_32
+          - platform: mingw81_64
+            os: windows-latest
+          - platform: mingw81_32
             os: windows-latest
           - platform: clang_64
             os: macos-latest
