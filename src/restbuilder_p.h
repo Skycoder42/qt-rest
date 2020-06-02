@@ -8,6 +8,8 @@ struct QTREST_EXPORT RestBuilderPrivate : public QSharedData
 {
     using HeaderMap = RestBuilder::HeaderMap;
 
+    static const QLatin1String Accept;
+
 	QUrl baseUrl;
 	QNetworkAccessManager *nam = nullptr;
     QStringList pathSegments;

@@ -2,6 +2,8 @@
 #include "restbuilder_p.h"
 using namespace QtRest;
 
+const QLatin1String RestBuilderPrivate::Accept {"Accept"};
+
 RestBuilder::RestBuilder() :
     d{new RestBuilderPrivate{}}
 {}
@@ -142,4 +144,28 @@ RestBuilder &RestBuilder::addHeaders(const RestBuilder::HeaderMap &headers, bool
             d->headers.insert(it.key(), it.value());
     }
     return *this;
+}
+
+RestBuilder &RestBuilder::setAccept(const QByteArray &mimeType)
+{
+    return addHeader(RestBuilderPrivate::Accept, mimeType);
+}
+
+RestBuilder &RestBuilder::setAccept(const QByteArrayList &mimeTypes)
+{
+    return addHeader(RestBuilderPrivate::Accept, mimeTypes.join(", "));
+}
+
+RestBuilder &RestBuilder::setAccept(const QMimeType &mimeType)
+{
+    return addHeader(RestBuilderPrivate::Accept, mimeType.name().toUtf8());
+}
+
+RestBuilder &RestBuilder::setAccept(const QList<QMimeType> &mimeTypes)
+{
+    QByteArrayList values;
+    values.reserve(mimeTypes.size());
+    for (const auto &mimeType : mimeTypes)
+        values.append(mimeType.name().toUtf8());
+    return addHeader(RestBuilderPrivate::Accept, values.join(", "));
 }

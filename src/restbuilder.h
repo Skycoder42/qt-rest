@@ -7,6 +7,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QMimeType>
 #include <QtCore/QVariant>
+#include <QtCore/QXmlStreamWriter>
 
 #include <QtNetwork/QNetworkAccessManager>
 
@@ -33,6 +34,8 @@ public:
 
     using HeaderMap = QHash<QByteArray, QByteArray>;
     using AttributeMap = QHash<QNetworkRequest::Attribute, QVariant>;
+
+    static void registerContentTypeHandler(const QByteArray &contentType);
 
     RestBuilder();
     RestBuilder(QUrl baseUrl, QNetworkAccessManager *nam = nullptr);
@@ -75,6 +78,10 @@ public:
         return addHeader(name, QVariant::fromValue(value));
     }
     RestBuilder &addHeaders(const HeaderMap &headers, bool replace = false);
+    RestBuilder &setAccept(const QByteArray &mimeType);
+    RestBuilder &setAccept(const QByteArrayList &mimeTypes);
+    RestBuilder &setAccept(const QMimeType &mimeType);
+    RestBuilder &setAccept(const QList<QMimeType> &mimeTypes);
 
     RestBuilder &updateFromRelativeUrl(const QUrl &url, MergeFlags mergeFlags = MergeFlag::None);
 
@@ -88,9 +95,16 @@ public:
     RestBuilder &setBody(QByteArray body, const QMimeType &contentType, bool setAccept = true);
     RestBuilder &setBody(QJsonValue body, bool setAccept = true);
     RestBuilder &setBody(QCborValue body, bool setAccept = true);
+
+    QXmlStreamWriter createXmlBody(bool setAccept = true);
+    void completeXmlBody(QXmlStreamWriter &writer);
+
+    template <typename T>
+    RestBuilder &setJsonBody(const T &body, bool setAccept = true);
+    template <typename T>
+    RestBuilder &setCborBody(const T &body, bool setAccept = true);
+
     RestBuilder &setVerb(QByteArray verb);
-    RestBuilder &setAccept(const QByteArray &mimeType);
-    RestBuilder &setAccept(const QMimeType &mimeType);
 
     RestBuilder &addPostParameter(const QString &name, const QString &value);
     RestBuilder &addPostParameters(const QUrlQuery &parameters);
