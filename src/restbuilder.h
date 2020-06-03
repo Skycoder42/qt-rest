@@ -1,5 +1,7 @@
 #pragma once
 
+#include "contenthandler.h"
+
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
 #include <QtCore/QSharedData>
@@ -111,25 +113,17 @@ public:
     RestBuilder &setBody(QIODevice *body, const QMimeType &contentType, bool setAccept = true);
     RestBuilder &setBody(QByteArray body, const QByteArray &contentType, bool setAccept = true);
     RestBuilder &setBody(QByteArray body, const QMimeType &contentType, bool setAccept = true);
-    RestBuilder &setBody(QJsonValue body, QJsonDocument::JsonFormat format = QJsonDocument::Indented, bool setAccept = true);
-    RestBuilder &setBody(QCborValue body, QCborValue::EncodingOptions opts = QCborValue::NoTransformation, bool setAccept = true);
 
     QXmlStreamWriter createXmlBody(bool setAccept = true);
     void completeXmlBody(QXmlStreamWriter &writer);
 
-    template <typename T>
-    inline RestBuilder &setJsonBody(const T &body,
-                                    const QtJson::Configuration &config = {},
-                                    QJsonDocument::JsonFormat format = QJsonDocument::Indented,
-                                    bool setAccept = true) {
-        return setBody(QtJson::toJson(body, config), format, setAccept);
-    }
-    template <typename T>
-    inline RestBuilder &setCborBody(const T &body,
-                             const QtJson::Configuration &config = {},
-                             QCborValue::EncodingOptions opts = QCborValue::NoTransformation,
-                             bool setAccept = true) {
-        return setBody(QtJson::toCbor(body, config), opts, setAccept);
+    template <template <class> class THandler, typename T, typename... TArgs>
+    inline RestBuilder& setBody(T &&body, bool setAccept = true, TArgs&&... handlerArgs) {
+        using TContent = std::decay_t<T>;
+        static_assert(std::is_base_of_v<ContentHandler<TContent>, THandler<TContent>>, "THandler must implement QtRest::ContentHandler");
+        const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};
+        auto [data, contentType] = handler.write(std::forward<T>(body));
+        return setBody(std::move(data), std::move(contentType), setAccept);
     }
 
     RestBuilder &setVerb(QByteArray verb);
@@ -142,12 +136,22 @@ public:
     RestBuilder &addPostParameters(QUrlQuery parameters, bool replace = false);
 
     RestBuilder &onResult(std::function<void(QNetworkReply*)>);
+    RestBuilder &onResult(std::function<bool(int, QByteArray, QByteArray)>);
 
-    RestBuilder &onSuccess(std::function<void(int, QIODevice*)>);
-    RestBuilder &onFailure(std::function<void(int, QIODevice*)>);
+    template <template <class> class THandler, typename T, typename... TArgs>
+    RestBuilder &onSuccess(std::function<void(int, T)> callback, TArgs&&... handlerArgs) {
+        using TContent = std::decay_t<T>;
+        static_assert(std::is_base_of_v<ContentHandler<TContent>, THandler<TContent>>, "THandler must implement QtRest::ContentHandler");
 
-    template <typename T, template <class> class THandler>
-    RestBuilder &onSuccess(std::function<void(int, typename THandler<T>::Data)>);
+        return onResult([=](int statusCode, QByteArray data, QByteArray contentType) {
+            const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};
+            if (handler.contentTypes().contains(contentType)) {
+                callback(statusCode, handler.read(std::move(data), std::move(contentType)));
+                return true;
+            } else
+                return false;
+        });
+    }
 
     QUrl buildUrl() const;
     QNetworkRequest build() const;

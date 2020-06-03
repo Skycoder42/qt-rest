@@ -268,16 +268,6 @@ RestBuilder &RestBuilder::setBody(QByteArray body, const QMimeType &contentType,
     return addHeader(RestBuilderPrivate::ContentTypeHeader, contentType.name().toUtf8());
 }
 
-RestBuilder &RestBuilder::setBody(QJsonValue body, QJsonDocument::JsonFormat format, bool setAccept)
-{
-    return setBody(QtJson::writeJson(body, format).toUtf8(), RestBuilderPrivate::ContentTypeJson, setAccept);
-}
-
-RestBuilder &RestBuilder::setBody(QCborValue body, QCborValue::EncodingOptions opts, bool setAccept)
-{
-    return setBody(QtJson::writeCbor(body, opts), RestBuilderPrivate::ContentTypeCbor, setAccept);
-}
-
 QXmlStreamWriter RestBuilder::createXmlBody(bool setAccept)
 {
     addHeader(RestBuilderPrivate::ContentTypeHeader, RestBuilderPrivate::ContentTypeXml1);
