@@ -11,7 +11,22 @@
 
 #include <QtNetwork/QNetworkAccessManager>
 
+#include <qtjson.h>
+
 namespace QtRest {
+
+using HeaderMap = QHash<QByteArray, QByteArray>;
+using AttributeMap = QHash<QNetworkRequest::Attribute, QVariant>;
+
+struct QTREST_EXPORT Verbs
+{
+    static const QByteArray GET;
+    static const QByteArray POST;
+    static const QByteArray PUT;
+    static const QByteArray DELETE;
+    static const QByteArray PATCH;
+    static const QByteArray HEAD;
+};
 
 struct RestBuilderPrivate;
 class QTREST_EXPORT RestBuilder
@@ -31,9 +46,6 @@ public:
         Standard = (UseVPrefix | Normalize)
     };
     Q_DECLARE_FLAGS(VersionFlags, VersionFlag)
-
-    using HeaderMap = QHash<QByteArray, QByteArray>;
-    using AttributeMap = QHash<QNetworkRequest::Attribute, QVariant>;
 
     static void registerContentTypeHandler(const QByteArray &contentType);
 
@@ -65,7 +77,7 @@ public:
     inline RestBuilder &addParameter(const QString &name, const T &value) {
         return addParameter(name, QVariant::fromValue(value));
     }
-    RestBuilder &addParameters(const QUrlQuery &parameters, bool replace = false);
+    RestBuilder &addParameters(QUrlQuery parameters, bool replace = false);
     RestBuilder &setFragment(QVariant fragment);
     template <typename T>
     inline RestBuilder &setFragment(const T &fragment) {
@@ -77,7 +89,7 @@ public:
     inline RestBuilder &addHeader(const QLatin1String &name, const T &value) {
         return addHeader(name, QVariant::fromValue(value));
     }
-    RestBuilder &addHeaders(const HeaderMap &headers, bool replace = false);
+    RestBuilder &addHeaders(HeaderMap headers, bool replace = false);
     RestBuilder &setAccept(const QByteArray &mimeType);
     RestBuilder &setAccept(const QByteArrayList &mimeTypes);
     RestBuilder &setAccept(const QMimeType &mimeType);
@@ -86,28 +98,56 @@ public:
     RestBuilder &updateFromRelativeUrl(const QUrl &url, MergeFlags mergeFlags = MergeFlag::None);
 
     RestBuilder &setAttribute(QNetworkRequest::Attribute attribute, const QVariant &value);
-    RestBuilder &setAttributes(const AttributeMap &attributes);
+    template <typename T>
+    inline RestBuilder &setAttribute(QNetworkRequest::Attribute attribute, const T &value) {
+        return setAttribute(attribute, QVariant::fromValue(value));
+    }
+    RestBuilder &setAttributes(AttributeMap attributes, bool replace = false);
 #ifndef QT_NO_SSL
     RestBuilder &setSslConfig(QSslConfiguration sslConfig);
 #endif
 
+    RestBuilder &setBody(QIODevice *body, const QByteArray &contentType, bool setAccept = true);
+    RestBuilder &setBody(QIODevice *body, const QMimeType &contentType, bool setAccept = true);
     RestBuilder &setBody(QByteArray body, const QByteArray &contentType, bool setAccept = true);
     RestBuilder &setBody(QByteArray body, const QMimeType &contentType, bool setAccept = true);
-    RestBuilder &setBody(QJsonValue body, bool setAccept = true);
-    RestBuilder &setBody(QCborValue body, bool setAccept = true);
+    RestBuilder &setBody(QJsonValue body, QJsonDocument::JsonFormat format = QJsonDocument::Indented, bool setAccept = true);
+    RestBuilder &setBody(QCborValue body, QCborValue::EncodingOptions opts = QCborValue::NoTransformation, bool setAccept = true);
 
     QXmlStreamWriter createXmlBody(bool setAccept = true);
     void completeXmlBody(QXmlStreamWriter &writer);
 
     template <typename T>
-    RestBuilder &setJsonBody(const T &body, bool setAccept = true);
+    inline RestBuilder &setJsonBody(const T &body,
+                                    const QtJson::Configuration &config = {},
+                                    QJsonDocument::JsonFormat format = QJsonDocument::Indented,
+                                    bool setAccept = true) {
+        return setBody(QtJson::toJson(body, config), format, setAccept);
+    }
     template <typename T>
-    RestBuilder &setCborBody(const T &body, bool setAccept = true);
+    inline RestBuilder &setCborBody(const T &body,
+                             const QtJson::Configuration &config = {},
+                             QCborValue::EncodingOptions opts = QCborValue::NoTransformation,
+                             bool setAccept = true) {
+        return setBody(QtJson::toCbor(body, config), opts, setAccept);
+    }
 
     RestBuilder &setVerb(QByteArray verb);
 
-    RestBuilder &addPostParameter(const QString &name, const QString &value);
-    RestBuilder &addPostParameters(const QUrlQuery &parameters);
+    RestBuilder &addPostParameter(const QString &name, QVariant value);
+    template <typename T>
+    inline RestBuilder &addPostParameter(const QString &name, const T &value) {
+        return addPostParameter(name, QVariant::fromValue(value));
+    }
+    RestBuilder &addPostParameters(QUrlQuery parameters, bool replace = false);
+
+    RestBuilder &onResult(std::function<void(QNetworkReply*)>);
+
+    RestBuilder &onSuccess(std::function<void(int, QIODevice*)>);
+    RestBuilder &onFailure(std::function<void(int, QIODevice*)>);
+
+    template <typename T, template <class> class THandler>
+    RestBuilder &onSuccess(std::function<void(int, typename THandler<T>::Data)>);
 
     QUrl buildUrl() const;
     QNetworkRequest build() const;

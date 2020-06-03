@@ -1,6 +1,8 @@
 CONFIG += c++17 exceptions
 
 HEADERS += \
+	$$PWD/src/contenthandler.h \
+	$$PWD/src/jsoncontenthandler.h \
 	$$PWD/src/restbuilder.h \
 	$$PWD/src/restbuilder_p.h
 
