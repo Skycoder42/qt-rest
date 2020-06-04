@@ -34,6 +34,11 @@ struct RestBuilderPrivate;
 class QTREST_EXPORT RestBuilder
 {
 public:
+    using ResultCallback = std::function<void(QNetworkReply*)>;
+    using InternalSuccessCallback = std::function<void(int, QByteArray, QByteArray, QTextCodec*)>;
+    template <typename T>
+    using SuccessCallback = std::function<void(int, T)>;
+
     enum class MergeFlag {
         None = 0x00,
         MergeQuery = 0x01,
@@ -135,18 +140,18 @@ public:
     }
     RestBuilder &addPostParameters(QUrlQuery parameters, bool replace = false);
 
-    RestBuilder &onResult(std::function<void(QNetworkReply*)>);
-    RestBuilder &onResult(std::function<bool(int, QByteArray, QByteArray)>);
+    RestBuilder &onResult(ResultCallback);
+    RestBuilder &onSuccess(InternalSuccessCallback);
 
     template <template <class> class THandler, typename T, typename... TArgs>
-    RestBuilder &onSuccess(std::function<void(int, T)> callback, TArgs&&... handlerArgs) {
+    RestBuilder &onSuccess(SuccessCallback<T> callback, TArgs&&... handlerArgs) {
         using TContent = std::decay_t<T>;
         static_assert(std::is_base_of_v<ContentHandler<TContent>, THandler<TContent>>, "THandler must implement QtRest::ContentHandler");
 
-        return onResult([=](int statusCode, QByteArray data, QByteArray contentType) {
+        return onSuccess([=](int statusCode, QByteArray data, QByteArray contentType, QTextCodec *codec) {
             const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};
             if (handler.contentTypes().contains(contentType)) {
-                callback(statusCode, handler.read(std::move(data), std::move(contentType)));
+                callback(statusCode, handler.read(std::move(data), std::move(contentType), codec));
                 return true;
             } else
                 return false;

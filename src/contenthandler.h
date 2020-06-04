@@ -1,6 +1,9 @@
 #pragma once
 
+#include <optional>
+
 #include <QtCore/QByteArray>
+#include <QtCore/QTextCodec>
 #include <QtCore/QList>
 
 namespace QtRest {
@@ -14,14 +17,20 @@ public:
     virtual QByteArrayList contentTypes() const = 0;
 
     virtual WriteResult write(const T &data) = 0;
-    virtual T read(const QByteArray &data, const QByteArray &contentType) = 0;
+    virtual T read(const QByteArray &data, const QByteArray &contentType, QTextCodec *codec = nullptr) = 0;
 };
 
-template <typename TFixed, typename TValue>
-class FixedContentHandler : public ContentHandler<TFixed>
+template <typename T>
+class StringContentHandler : public ContentHandler<T>
 {
-    static_assert (std::is_same_v<TValue, TFixed>, "A FixedContentHandler only supports a single, fixed type TFixed");
+public:
+    virtual T read(const QString &data, const QByteArray &contentType) = 0;
+    inline T read(const QByteArray &data, const QByteArray &contentType,  QTextCodec *codec) final {
+        if (codec)
+            return read(codec->toUnicode(data), contentType);
+        else
+            return read(QString::fromUtf8(data), contentType);
+    }
 };
-// usage: class MyFixedHandler<T> : public FixedContentHandler<MyType, T>
 
 }

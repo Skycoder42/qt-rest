@@ -6,7 +6,7 @@
 namespace QtRest {
 
 template <typename T>
-class JsonContentHandler : public ContentHandler<T>
+class JsonContentHandler : public StringContentHandler<T>
 {
 public:
     using WriteResult = typename ContentHandler<T>::WriteResult;
@@ -25,9 +25,9 @@ public:
         return std::make_pair(QtJson::stringify(data, _config, _format).toUtf8(), "application/json");
     }
 
-    T read(const QByteArray &data, const QByteArray &contentType) override {
+    T read(const QString &data, const QByteArray &contentType) override {
         Q_UNUSED(contentType)
-        return QtJson::parseString(QString::fromUtf8(data), _config);
+        return QtJson::parseString(data, _config);
     }
 
 private:
@@ -36,27 +36,16 @@ private:
 };
 
 template <>
-class JsonContentHandler<QJsonValue> : public ContentHandler<QJsonValue>
+class JsonContentHandler<QJsonValue> : public StringContentHandler<QJsonValue>
 {
 public:
     using WriteResult = typename ContentHandler<QJsonValue>::WriteResult;
 
-    JsonContentHandler(QJsonDocument::JsonFormat format = QJsonDocument::Indented) :
-        _format{format}
-    {}
+    JsonContentHandler(QJsonDocument::JsonFormat format = QJsonDocument::Indented);
 
-    QByteArrayList contentTypes() const override {
-        return {"application/json"};
-    }
-
-    WriteResult write(const QJsonValue &data) override {
-        return std::make_pair(QtJson::writeJson(data, _format).toUtf8(), "application/json");
-    }
-
-    QJsonValue read(const QByteArray &data, const QByteArray &contentType) override {
-        Q_UNUSED(contentType)
-        return QtJson::readJson(QString::fromUtf8(data));
-    }
+    QByteArrayList contentTypes() const override;
+    WriteResult write(const QJsonValue &data) override;
+    QJsonValue read(const QString &data, const QByteArray &contentType) override;
 
 private:
     QJsonDocument::JsonFormat _format;

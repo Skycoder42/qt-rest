@@ -7,6 +7,7 @@ HEADERS += \
 	$$PWD/src/restbuilder_p.h
 
 SOURCES += \
+	$$PWD/src/jsoncontenthandler.cpp \
 	$$PWD/src/restbuilder.cpp
 
 INCLUDEPATH += $$PWD/src
