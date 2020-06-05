@@ -1,12 +1,12 @@
 #pragma once
 
+#include "qtrest_global.h"
 #include "contenthandler.h"
 
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
 #include <QtCore/QSharedData>
 #include <QtCore/QVersionNumber>
-#include <QtCore/QHash>
 #include <QtCore/QMimeType>
 #include <QtCore/QVariant>
 #include <QtCore/QXmlStreamWriter>
@@ -16,19 +16,6 @@
 #include <qtjson.h>
 
 namespace QtRest {
-
-using HeaderMap = QHash<QByteArray, QByteArray>;
-using AttributeMap = QHash<QNetworkRequest::Attribute, QVariant>;
-
-struct QTREST_EXPORT Verbs
-{
-    static const QByteArray GET;
-    static const QByteArray POST;
-    static const QByteArray PUT;
-    static const QByteArray DELETE;
-    static const QByteArray PATCH;
-    static const QByteArray HEAD;
-};
 
 struct RestBuilderPrivate;
 class QTREST_EXPORT RestBuilder
