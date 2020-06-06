@@ -14,8 +14,6 @@ const QByteArray Verbs::HEAD = "HEAD";
 
 const QLatin1String RestBuilderPrivate::AcceptHeader {"Accept"};
 const QLatin1String RestBuilderPrivate::ContentTypeHeader {"Content-Type"};
-const QByteArray RestBuilderPrivate::ContentTypeJson {"application/json"};
-const QByteArray RestBuilderPrivate::ContentTypeCbor {"application/cbor"};
 const QByteArray RestBuilderPrivate::ContentTypeXml1 {"application/xml"};
 const QByteArray RestBuilderPrivate::ContentTypeXml2 {"text/xml"};
 
@@ -309,6 +307,12 @@ RestBuilder &RestBuilder::addPostParameters(QUrlQuery parameters, bool replace)
         for (const auto &item : parameters.queryItems())
             std::get<QUrlQuery>(d->body).addQueryItem(item.first, item.second);
     }
+    return *this;
+}
+
+RestBuilder &RestBuilder::onResult(RestBuilder::RawResultCallback callback)
+{
+    d->resultCallbacks.append(std::move(callback));
     return *this;
 }
 

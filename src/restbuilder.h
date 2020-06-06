@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qtrest_global.h"
-#include "contenthandler.h"
+#include "restreply.h"
 
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
@@ -21,10 +21,9 @@ struct RestBuilderPrivate;
 class QTREST_EXPORT RestBuilder
 {
 public:
-    using ResultCallback = std::function<void(QNetworkReply*)>;
-    using InternalSuccessCallback = std::function<void(int, QByteArray, QByteArray, QTextCodec*)>;
-    template <typename T>
-    using SuccessCallback = std::function<void(int, T)>;
+    using RawResultCallback = std::function<void(RawRestReply)>;
+    template <template <class> class... THandlers>
+    using ResultCallback = std::function<void(RestReply<THandlers...>)>;
 
     enum class MergeFlag {
         None = 0x00,
@@ -112,9 +111,12 @@ public:
     template <template <class> class THandler, typename T, typename... TArgs>
     inline RestBuilder& setBody(T &&body, bool setAccept = true, TArgs&&... handlerArgs) {
         using TContent = std::decay_t<T>;
-        const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};
+        const THandler<TContent> handler{{std::forward<TArgs>(handlerArgs)...}};
         auto [data, contentType] = handler.write(std::forward<T>(body));
-        return setBody(std::move(data), std::move(contentType), setAccept);
+        if constexpr (THandler<TContent>::IsStringHandler)
+            return setBody(data.toUtf8(), std::move(contentType), setAccept);
+        else
+            return setBody(std::move(data), std::move(contentType), setAccept);
     }
 
     RestBuilder &setVerb(QByteArray verb);
@@ -126,20 +128,11 @@ public:
     }
     RestBuilder &addPostParameters(QUrlQuery parameters, bool replace = false);
 
-    RestBuilder &onResult(ResultCallback);
-    RestBuilder &onSuccess(InternalSuccessCallback);
-
-    template <template <class> class THandler, typename T, typename... TArgs>
-    RestBuilder &onSuccess(SuccessCallback<T> callback, TArgs&&... handlerArgs) {
-        using TContent = std::decay_t<T>;
-
-        return onSuccess([=](int statusCode, QByteArray data, QByteArray contentType, QTextCodec *codec) {
-            const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};
-            if (handler.contentTypes().contains(contentType)) {
-                callback(statusCode, handler.read(std::move(data), std::move(contentType), codec));
-                return true;
-            } else
-                return false;
+    RestBuilder &onResult(RawResultCallback);
+    template <template <class> class... THandlers>
+    inline RestBuilder &onResult(ResultCallback<THandlers...>, ContentHandlerArgs<THandlers>... args) {
+        return onResult([=](const RawRestReply &reply) {
+            return reply.toGeneric<THandlers...>(args...);
         });
     }
 

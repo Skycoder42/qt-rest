@@ -10,14 +10,11 @@ namespace QtRest {
 
 struct QTREST_EXPORT RestBuilderPrivate : public QSharedData
 {
-    using ResultCallback = RestBuilder::ResultCallback;
-    using InternalSuccessCallback = RestBuilder::InternalSuccessCallback;
+    using ResultCallback = RestBuilder::RawResultCallback;
 
     static const QLatin1String AcceptHeader;
-
     static const QLatin1String ContentTypeHeader;
-    static const QByteArray ContentTypeJson;
-    static const QByteArray ContentTypeCbor;
+
     static const QByteArray ContentTypeXml1;
     static const QByteArray ContentTypeXml2;
 
@@ -33,7 +30,6 @@ struct QTREST_EXPORT RestBuilderPrivate : public QSharedData
     QByteArray verb = Verbs::GET;
 
     QList<ResultCallback> resultCallbacks;
-    QList<InternalSuccessCallback> successCallbacks;
 
 #ifndef QT_NO_SSL
     QSslConfiguration sslConfig;

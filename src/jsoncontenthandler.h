@@ -37,7 +37,7 @@ public:
 
     T read(const QString &data, const QByteArray &contentType) override {
         Q_UNUSED(contentType)
-        return QtJson::parseString(data, _config);
+        return QtJson::parseString<T>(data, _config);
     }
 
 private:
