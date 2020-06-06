@@ -112,7 +112,6 @@ public:
     template <template <class> class THandler, typename T, typename... TArgs>
     inline RestBuilder& setBody(T &&body, bool setAccept = true, TArgs&&... handlerArgs) {
         using TContent = std::decay_t<T>;
-        static_assert(std::is_base_of_v<ContentHandler<TContent>, THandler<TContent>>, "THandler must implement QtRest::ContentHandler");
         const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};
         auto [data, contentType] = handler.write(std::forward<T>(body));
         return setBody(std::move(data), std::move(contentType), setAccept);
@@ -133,7 +132,6 @@ public:
     template <template <class> class THandler, typename T, typename... TArgs>
     RestBuilder &onSuccess(SuccessCallback<T> callback, TArgs&&... handlerArgs) {
         using TContent = std::decay_t<T>;
-        static_assert(std::is_base_of_v<ContentHandler<TContent>, THandler<TContent>>, "THandler must implement QtRest::ContentHandler");
 
         return onSuccess([=](int statusCode, QByteArray data, QByteArray contentType, QTextCodec *codec) {
             const THandler<TContent> handler{std::forward<TArgs>(handlerArgs)...};

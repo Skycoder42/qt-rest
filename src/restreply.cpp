@@ -3,6 +3,8 @@
 #include <QtCore/QPointer>
 using namespace QtRest;
 
+Q_LOGGING_CATEGORY(QtRest::logReply, "qtrest.RestReply")
+
 namespace QtRest {
 
 class RestReplyData : public QSharedData
@@ -20,78 +22,163 @@ public:
 
 }
 
-RestReply::RestReply(QNetworkReply *reply) :
+RawRestReply::RawRestReply(QNetworkReply *reply) :
     d{new RestReplyData{}}
 {
     d->reply = reply;
 }
 
-RestReply::RestReply(const RestReply &other) = default;
+RawRestReply::RawRestReply(const RawRestReply &other) = default;
 
-RestReply::RestReply(RestReply &&other) noexcept = default;
+RawRestReply::RawRestReply(RawRestReply &&other) noexcept = default;
 
-RestReply &RestReply::operator=(const RestReply &other) = default;
+RawRestReply &RawRestReply::operator=(const RawRestReply &other) = default;
 
-RestReply &RestReply::operator=(RestReply &&other) noexcept = default;
+RawRestReply &RawRestReply::operator=(RawRestReply &&other) noexcept = default;
 
-RestReply::~RestReply() = default;
+RawRestReply::~RawRestReply() = default;
 
-bool RestReply::hasHeader(const QLatin1String &name) const
+bool RawRestReply::hasHeader(const QLatin1String &name) const
 {
     return d->reply->hasRawHeader(name.latin1());
 }
 
-QString RestReply::header(const QLatin1String &name) const
+QString RawRestReply::header(const QLatin1String &name) const
 {
     return QString::fromLatin1(d->reply->rawHeader(name.latin1()));
 }
 
-QVariant RestReply::attribute(QNetworkRequest::Attribute attribute) const
+QVariant RawRestReply::attribute(QNetworkRequest::Attribute attribute) const
 {
-    throw nullptr;
+    return d->reply->attribute(attribute);
 }
 
-QIODevice *RestReply::bodyDevice() const
+QIODevice *RawRestReply::bodyDevice() const
 {
-    throw nullptr;
+    return d->reply;
 }
 
-QByteArray RestReply::body()
+QByteArray RawRestReply::body()
 {
-    throw nullptr;
+    return d->reply->readAll();
 }
 
-QString RestReply::bodyString()
+QString RawRestReply::bodyString()
 {
-    throw nullptr;
+    if (const auto codec = contentCodec(); codec)
+        return codec->toUnicode(body());
+    else
+        return QString::fromUtf8(body());
 }
 
-bool RestReply::wasSuccessful() const
+bool RawRestReply::wasSuccessful() const
 {
-    throw nullptr;
+    return status() < 300;
 }
 
-int RestReply::status() const
+int RawRestReply::status() const
 {
-    throw nullptr;
+    if (!d->statusCode)
+        d->statusCode = d->reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    return *d->statusCode;
 }
 
-QByteArray RestReply::contentType() const
+QByteArray RawRestReply::contentType() const
 {
-    throw nullptr;
+    if (!d->contentType)
+        d->parseContentType();
+    return *d->contentType;
 }
 
-QTextCodec *RestReply::contentCodec() const
+QTextCodec *RawRestReply::contentCodec() const
 {
-    throw nullptr;
+    if (!d->contentType)
+        d->parseContentType();
+    return d->contentCodec;
 }
 
-qint64 RestReply::contentLength() const
+qint64 RawRestReply::contentLength() const
 {
-    throw nullptr;
+    if (!d->contentLength)
+        d->contentLength = d->reply->header(QNetworkRequest::ContentLengthHeader).toLongLong();
+    return *d->contentLength;
 }
 
-QNetworkReply *RestReply::reply() const
+QNetworkReply *RawRestReply::reply() const
 {
-    throw nullptr;
+    return d->reply;
+}
+
+void RestReplyData::parseContentType()
+{
+    contentCodec = nullptr;
+    contentType = reply->header(QNetworkRequest::ContentTypeHeader).toByteArray().trimmed();
+    if (const auto cList = contentType->split(';'); cList.size() > 1) {
+        contentType = cList.first().trimmed();
+        for (auto i = 1; i < cList.size(); ++i) {
+            auto args = cList[i].trimmed().split('=');
+            if (args.size() == 2 && args[0] == "charset") {
+                contentCodec = QTextCodec::codecForName(args[1]);
+                if (!contentCodec) {
+                    // TODO throw
+                }
+            } else
+                qCWarning(logReply) << "Unknown content type directive:" << args[0];
+        }
+    }
+}
+
+
+
+// TODO remove compile test
+
+template <typename T>
+class ContentHandler1;
+
+template <>
+struct ContentHandlerArgs<ContentHandler1> {
+    int id;
+};
+
+template <typename T>
+class ContentHandler1 : public IByteArrayContentHandler<T>
+{
+public:
+    using WriteResult = typename IByteArrayContentHandler<T>::WriteResult;
+
+    ContentHandler1(ContentHandlerArgs<ContentHandler1>) {}
+
+    QByteArrayList contentTypes() const override { return {}; };
+
+    WriteResult write(const T &) override { return std::make_pair("", ""); };
+    T read(const QByteArray &, const QByteArray &, QTextCodec * = nullptr) override { return T{}; };
+};
+
+template <typename T>
+class ContentHandler2;
+
+template <>
+struct ContentHandlerArgs<ContentHandler2> {};
+
+template <typename T>
+class ContentHandler2 : public IStringContentHandler<T>
+{
+public:
+    using WriteResult = typename IStringContentHandler<T>::WriteResult;
+
+    ContentHandler2(ContentHandlerArgs<ContentHandler2>) {}
+
+    QByteArrayList contentTypes() const override { return {}; };
+
+    WriteResult write(const T &) override { return std::make_pair("", ""); };
+    T read(const QString &, const QByteArray &) override { return T{}; };
+};
+
+RestReply<ContentHandler1, ContentHandler2> reply {
+    { 42 },
+    {}
+};
+
+void xxx() {
+    reply.body<QString>();
 }

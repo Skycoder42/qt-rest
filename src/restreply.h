@@ -1,17 +1,26 @@
 #pragma once
 
 #include "qtrest_global.h"
+#include "contenthandler.h"
+
+#include <tuple>
+#include <variant>
 
 #include <QtCore/QObject>
 #include <QtCore/QByteArray>
 #include <QtCore/QTextCodec>
 #include <QtCore/QExplicitlySharedDataPointer>
+#include <QtCore/QLoggingCategory>
+
 #include <QtNetwork/QNetworkReply>
 
 namespace QtRest {
 
+template <template<class> class... THandlers>
+class RestReply;
+
 class RestReplyData;
-class QTREST_EXPORT RestReply
+class QTREST_EXPORT RawRestReply
 {
     Q_GADGET
 
@@ -24,12 +33,12 @@ class QTREST_EXPORT RestReply
     Q_PROPERTY(QNetworkReply* reply READ reply CONSTANT)
 
 public:
-    RestReply(QNetworkReply *reply = nullptr);
-    RestReply(const RestReply &other);
-    RestReply(RestReply &&other) noexcept;
-    RestReply &operator=(const RestReply &other);
-    RestReply &operator=(RestReply &&other) noexcept;
-    ~RestReply();
+    RawRestReply(QNetworkReply *reply = nullptr);
+    RawRestReply(const RawRestReply &other);
+    RawRestReply(RawRestReply &&other) noexcept;
+    RawRestReply &operator=(const RawRestReply &other);
+    RawRestReply &operator=(RawRestReply &&other) noexcept;
+    ~RawRestReply();
 
     Q_INVOKABLE bool hasHeader(const QLatin1String &name) const;
     Q_INVOKABLE QString header(const QLatin1String &name) const;
@@ -55,9 +64,66 @@ public:
     qint64 contentLength() const;
     QNetworkReply* reply() const;
 
+
+    template <template<class> class... THandlers>
+    inline RestReply<THandlers...> toGeneric(ContentHandlerArgs<THandlers>... args) const {
+        return RestReply<THandlers...>{std::move(args)..., *this};
+    }
+
 private:
     QExplicitlySharedDataPointer<RestReplyData> d;
 };
+
+template <template<class> class... THandlers>
+class RestReply : public RawRestReply
+{
+private:
+    friend class RawRestReply;
+
+    template <typename T>
+    using HandlerVariant = std::variant<THandlers<T>...>;
+
+public:
+    RestReply(ContentHandlerArgs<THandlers>... args, QNetworkReply *reply = nullptr) :
+        RawRestReply{reply},
+        _initArgs{std::make_tuple(std::move(args)...)}
+    {}
+
+    template <typename T>
+    T body() {
+        auto handler = findHandler<T, THandlers...>();
+        return std::visit([this](auto &handler) -> T {
+            if constexpr (std::decay_t<decltype(handler)>::IsStringHandler)
+                return handler.read(this->bodyString(), this->contentType());
+            else
+                return handler.read(this->RawRestReply::body(), this->contentType(), this->contentCodec());
+        }, handler);
+    }
+
+private:
+    std::tuple<ContentHandlerArgs<THandlers>...> _initArgs;
+
+    RestReply(ContentHandlerArgs<THandlers>... args, const RawRestReply &base) :
+        RawRestReply{base},
+        _initArgs{std::make_tuple(std::move(args)...)}
+    {}
+
+    template <typename T>
+    HandlerVariant<T> findHandler() const {
+        throw nullptr; // TODO
+    }
+
+    template <typename T, template<class> class THandler, template<class> class... TOthers>
+    HandlerVariant<T> findHandler() const {
+        THandler<T> handler(std::get<ContentHandlerArgs<THandler>>(_initArgs));
+        if (handler.contentTypes().contains(this->contentType()))
+            return handler;
+        else
+            return findHandler<T, TOthers...>();
+    }
+};
+
+Q_DECLARE_LOGGING_CATEGORY(logReply)
 
 }
 

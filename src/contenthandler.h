@@ -8,10 +8,15 @@
 
 namespace QtRest {
 
+template <template <class> class THandler>
+struct ContentHandlerArgs;
+
 template <typename T>
-class ContentHandler
+class IByteArrayContentHandler
 {
 public:
+    static constexpr bool IsStringHandler = false;
+
     using WriteResult = std::pair<QByteArray, QByteArray>; // (data, contentType)
 
     virtual QByteArrayList contentTypes() const = 0;
@@ -21,16 +26,17 @@ public:
 };
 
 template <typename T>
-class StringContentHandler : public ContentHandler<T>
+class IStringContentHandler
 {
 public:
+    static constexpr bool IsStringHandler = true;
+
+    using WriteResult = std::pair<QString, QByteArray>; // (data, contentType)
+
+    virtual QByteArrayList contentTypes() const = 0;
+
+    virtual WriteResult write(const T &data) = 0;
     virtual T read(const QString &data, const QByteArray &contentType) = 0;
-    inline T read(const QByteArray &data, const QByteArray &contentType,  QTextCodec *codec) final {
-        if (codec)
-            return read(codec->toUnicode(data), contentType);
-        else
-            return read(QString::fromUtf8(data), contentType);
-    }
 };
 
 }
