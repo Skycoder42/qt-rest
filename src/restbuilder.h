@@ -17,13 +17,16 @@
 
 namespace QtRest {
 
-struct RestBuilderPrivate;
-class QTREST_EXPORT RestBuilder
+struct RestBuilderData;
+
+template <template <class> class... THandlers>
+class GenericRestBuilder;
+
+template <typename TBuilder>
+class RawRestBuilder
 {
 public:
-    using RawResultCallback = std::function<void(RawRestReply)>;
-    template <template <class> class... THandlers>
-    using ResultCallback = std::function<void(RestReply<THandlers...>)>;
+    using Builder = TBuilder;
 
     enum class MergeFlag {
         None = 0x00,
@@ -40,78 +43,109 @@ public:
     };
     Q_DECLARE_FLAGS(VersionFlags, VersionFlag)
 
-    static void registerContentTypeHandler(const QByteArray &contentType);
+    RawRestBuilder();
+    RawRestBuilder(QUrl baseUrl, QNetworkAccessManager *nam = nullptr);
+    RawRestBuilder(const RawRestBuilder &other) = default;
+    RawRestBuilder(RawRestBuilder &&other) noexcept = default;
+    RawRestBuilder &operator=(const RawRestBuilder &other) = default;
+    RawRestBuilder &operator=(RawRestBuilder &&other) noexcept = default;
+    virtual ~RawRestBuilder() = default;
 
-    RestBuilder();
-    RestBuilder(QUrl baseUrl, QNetworkAccessManager *nam = nullptr);
-    RestBuilder(const RestBuilder &other);
-    RestBuilder(RestBuilder &&other) noexcept;
-    RestBuilder &operator=(const RestBuilder &other);
-    RestBuilder &operator=(RestBuilder &&other) noexcept;
-	virtual ~RestBuilder();
+    template<template <class> class THandler, typename... TArgs>
+    GenericRestBuilder<THandler> addContentTypeHandler(TArgs&&... args);
 
-    RestBuilder &setNetworkAccessManager(QNetworkAccessManager *nam);
-    RestBuilder &setBaseUrl(QUrl baseUrl);
+    Builder &setNetworkAccessManager(QNetworkAccessManager *nam);
+    Builder &setBaseUrl(QUrl baseUrl);
 
-    RestBuilder &setScheme(const QString &scheme);
-    RestBuilder &setUser(const QString &user);
-    RestBuilder &setPassword(const QString &password);
-    RestBuilder &setCredentials(const QString &user, const QString &password = {});
-    RestBuilder &setHost(const QString &host);
-    RestBuilder &setPort(quint16 port);
+    Builder &setScheme(const QString &scheme);
+    Builder &setUser(const QString &user);
+    Builder &setPassword(const QString &password);
+    Builder &setCredentials(const QString &user, const QString &password = {});
+    Builder &setHost(const QString &host);
+    Builder &setPort(quint16 port);
 
-    RestBuilder &addPath(const QString &pathSegment);
-    RestBuilder &addPath(const QVersionNumber &version, VersionFlags versionFlags = VersionFlag::Standard);
-    RestBuilder &addPath(const QStringList &pathSegments);
-    RestBuilder &trailingSlash(bool enable = true);
+    Builder &addPath(const QString &pathSegment);
+    Builder &addPath(const QVersionNumber &version, VersionFlags versionFlags = VersionFlag::Standard);
+    Builder &addPath(const QStringList &pathSegments);
+    Builder &trailingSlash(bool enable = true);
 
-    RestBuilder &addParameter(const QString &name, QVariant value);
+    Builder &addParameter(const QString &name, QVariant value);
     template <typename T>
-    inline RestBuilder &addParameter(const QString &name, const T &value) {
+    inline Builder &addParameter(const QString &name, const T &value) {
         return addParameter(name, QVariant::fromValue(value));
     }
-    RestBuilder &addParameters(QUrlQuery parameters, bool replace = false);
-    RestBuilder &setFragment(QVariant fragment);
+    Builder &addParameters(QUrlQuery parameters, bool replace = false);
+    Builder &setFragment(QVariant fragment);
     template <typename T>
-    inline RestBuilder &setFragment(const T &fragment) {
+    inline Builder &setFragment(const T &fragment) {
         return setFragment(QVariant::fromValue(fragment));
     }
 
-    RestBuilder &addHeader(const QLatin1String &name, QVariant value);
+    Builder &addHeader(const QLatin1String &name, QVariant value);
     template <typename T>
-    inline RestBuilder &addHeader(const QLatin1String &name, const T &value) {
+    inline Builder &addHeader(const QLatin1String &name, const T &value) {
         return addHeader(name, QVariant::fromValue(value));
     }
-    RestBuilder &addHeaders(HeaderMap headers, bool replace = false);
-    RestBuilder &setAccept(const QByteArray &mimeType);
-    RestBuilder &setAccept(const QByteArrayList &mimeTypes);
-    RestBuilder &setAccept(const QMimeType &mimeType);
-    RestBuilder &setAccept(const QList<QMimeType> &mimeTypes);
+    Builder &addHeaders(HeaderMap headers, bool replace = false);
+    Builder &setAccept(const QByteArray &mimeType);
+    Builder &setAccept(const QByteArrayList &mimeTypes);
+    Builder &setAccept(const QMimeType &mimeType);
+    Builder &setAccept(const QList<QMimeType> &mimeTypes);
 
-    RestBuilder &updateFromRelativeUrl(const QUrl &url, MergeFlags mergeFlags = MergeFlag::None);
+    Builder &updateFromRelativeUrl(const QUrl &url, MergeFlags mergeFlags = MergeFlag::None);
 
-    RestBuilder &setAttribute(QNetworkRequest::Attribute attribute, const QVariant &value);
+    Builder &setAttribute(QNetworkRequest::Attribute attribute, const QVariant &value);
     template <typename T>
-    inline RestBuilder &setAttribute(QNetworkRequest::Attribute attribute, const T &value) {
+    inline Builder &setAttribute(QNetworkRequest::Attribute attribute, const T &value) {
         return setAttribute(attribute, QVariant::fromValue(value));
     }
-    RestBuilder &setAttributes(AttributeMap attributes, bool replace = false);
+    Builder &setAttributes(AttributeMap attributes, bool replace = false);
 #ifndef QT_NO_SSL
-    RestBuilder &setSslConfig(QSslConfiguration sslConfig);
+    Builder &setSslConfig(QSslConfiguration sslConfig);
 #endif
 
-    RestBuilder &setBody(QIODevice *body, const QByteArray &contentType, bool setAccept = true);
-    RestBuilder &setBody(QIODevice *body, const QMimeType &contentType, bool setAccept = true);
-    RestBuilder &setBody(QByteArray body, const QByteArray &contentType, bool setAccept = true);
-    RestBuilder &setBody(QByteArray body, const QMimeType &contentType, bool setAccept = true);
+    Builder &setBody(QByteArray body, const QByteArray &contentType, bool setAccept = true);
+    Builder &setBody(QByteArray body, const QMimeType &contentType, bool setAccept = true);
+    Builder &setBody(QIODevice *body, const QByteArray &contentType, bool setAccept = true);
+    Builder &setBody(QIODevice *body, const QMimeType &contentType, bool setAccept = true);
 
-    QXmlStreamWriter createXmlBody(bool setAccept = true);
-    void completeXmlBody(QXmlStreamWriter &writer);
+    Builder &setVerb(QByteArray verb);
 
-    template <template <class> class THandler, typename T, typename... TArgs>
-    inline RestBuilder& setBody(T &&body, bool setAccept = true, TArgs&&... handlerArgs) {
+    Builder &addPostParameter(const QString &name, QVariant value);
+    template <typename T>
+    inline Builder &addPostParameter(const QString &name, const T &value) {
+        return addPostParameter(name, QVariant::fromValue(value));
+    }
+    Builder &addPostParameters(QUrlQuery parameters, bool replace = false);
+
+    Builder &onResult(std::function<void(RawRestReply)> callback);
+
+    QUrl buildUrl() const;
+    QNetworkRequest build() const;
+    QNetworkReply *send() const;
+
+protected:
+    RawRestBuilder(const QSharedDataPointer<RestBuilderData> &d);
+
+private:
+    QSharedDataPointer<RestBuilderData> d;
+};
+
+class QTREST_EXPORT RestBuilder : public RawRestBuilder<RestBuilder> {};
+
+template <template <class> class... THandlers>
+class GenericRestBuilder : public RawRestBuilder<GenericRestBuilder<THandlers...>>
+{
+public:
+    using Builder = GenericRestBuilder<THandlers...>;
+
+    template<template <class> class THandler, typename... TArgs>
+    GenericRestBuilder<THandlers..., THandler> addContentTypeHandler(TArgs&&... args);
+
+    template <template <class> class THandler, typename T>
+    inline Builder& setBody(T &&body, bool setAccept = true) {
         using TContent = std::decay_t<T>;
-        const THandler<TContent> handler{{std::forward<TArgs>(handlerArgs)...}};
+        const THandler<TContent> handler{};
         auto [data, contentType] = handler.write(std::forward<T>(body));
         if constexpr (THandler<TContent>::IsStringHandler)
             return setBody(data.toUtf8(), std::move(contentType), setAccept);
@@ -119,34 +153,28 @@ public:
             return setBody(std::move(data), std::move(contentType), setAccept);
     }
 
-    RestBuilder &setVerb(QByteArray verb);
-
-    RestBuilder &addPostParameter(const QString &name, QVariant value);
-    template <typename T>
-    inline RestBuilder &addPostParameter(const QString &name, const T &value) {
-        return addPostParameter(name, QVariant::fromValue(value));
-    }
-    RestBuilder &addPostParameters(QUrlQuery parameters, bool replace = false);
-
-    RestBuilder &onResult(RawResultCallback);
-    template <template <class> class... THandlers>
-    inline RestBuilder &onResult(ResultCallback<THandlers...>, ContentHandlerArgs<THandlers>... args) {
+    inline Builder &onResult(std::function<void(RestReply<THandlers...>)> callback) {
         return onResult([=](const RawRestReply &reply) {
-            return reply.toGeneric<THandlers...>(args...);
+            callback(reply.toGeneric<THandlers...>());
         });
     }
 
-    QUrl buildUrl() const;
-    QNetworkRequest build() const;
-    QNetworkReply *send() const;
-
 private:
-    QSharedDataPointer<RestBuilderPrivate> d;
+    std::tuple<ContentHandlerArgs<THandlers>...> _contentHandlerArgs;
 };
 
 }
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(QtRest::RestBuilder::MergeFlags)
-Q_DECLARE_OPERATORS_FOR_FLAGS(QtRest::RestBuilder::VersionFlags)
-Q_DECLARE_METATYPE(QtRest::RestBuilder)
-Q_DECLARE_TYPEINFO(QtRest::RestBuilder, Q_MOVABLE_TYPE);
+#define Q_DECLARE_GENERIC_OPERATORS_FOR_FLAGS(Flags, ...) \
+    template <__VA_ARGS__> \
+    Q_DECL_CONSTEXPR inline QFlags<typename Flags::enum_type> operator|(typename Flags::enum_type f1, typename Flags::enum_type f2) noexcept \
+    { return QFlags<typename Flags::enum_type>(f1) | f2; } \
+    template <__VA_ARGS__> \
+    Q_DECL_CONSTEXPR inline QFlags<typename Flags::enum_type> operator|(typename Flags::enum_type f1, QFlags<typename Flags::enum_type> f2) noexcept \
+    { return f2 | f1; } \
+    template <__VA_ARGS__> \
+    Q_DECL_CONSTEXPR inline QIncompatibleFlag operator|(typename Flags::enum_type f1, int f2) noexcept \
+    { return QIncompatibleFlag(int(f1) | f2); }
+
+Q_DECLARE_GENERIC_OPERATORS_FOR_FLAGS(QtRest::RawRestBuilder<T>::MergeFlags, typename T)
+Q_DECLARE_GENERIC_OPERATORS_FOR_FLAGS(QtRest::RawRestBuilder<T>::VersionFlags, typename T)

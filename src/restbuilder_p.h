@@ -8,9 +8,9 @@
 
 namespace QtRest {
 
-struct QTREST_EXPORT RestBuilderPrivate : public QSharedData
+struct QTREST_EXPORT RestBuilderData : public QSharedData
 {
-    using ResultCallback = RestBuilder::RawResultCallback;
+    using ResultCallback = RawRestBuilder::RawResultCallback;
 
     static const QLatin1String AcceptHeader;
     static const QLatin1String ContentTypeHeader;
