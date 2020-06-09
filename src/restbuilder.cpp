@@ -43,3 +43,15 @@ QNetworkReply *SendBodyVisitor::operator()(const QUrlQuery &postParams) const
 						 RestBuilderData::ContentTypeUrlEncoded);
 	return nam->sendCustomRequest(request, verb, postParams.query().toUtf8());
 }
+
+
+
+RawRestReplyRunnable::RawRestReplyRunnable(std::function<void(RawRestReply)> callback, RawRestReply &&reply) :
+	_callback{std::move(callback)},
+	_reply{std::move(reply)}
+{}
+
+void RawRestReplyRunnable::run()
+{
+	_callback(_reply);
+}

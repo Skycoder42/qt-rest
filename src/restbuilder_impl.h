@@ -362,6 +362,22 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::onResult(s
 	return *static_cast<Builder*>(this);
 }
 
+#ifdef QT_REST_USE_ASYNC
+template <typename TBuilder>
+typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::onResultAsync(std::function<void(RawRestReply)> callback)
+{
+	return onResultAsync(QThreadPool::globalInstance(), std::move(callback));
+}
+
+template <typename TBuilder>
+typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::onResultAsync(QThreadPool *threadPool, std::function<void(RawRestReply)> callback)
+{
+	return onResult([threadPool, cb = std::move(callback)](RawRestReply reply) {
+		threadPool->start(new __private::RawRestReplyRunnable{cb, std::move(reply)});
+	});
+}
+#endif
+
 template <typename TBuilder>
 QUrl RawRestBuilder<TBuilder>::buildUrl() const
 {
@@ -474,16 +490,30 @@ typename GenericRestBuilder<THandlers...>::Builder &GenericRestBuilder<THandlers
 
 #ifdef QT_REST_USE_ASYNC
 template <template <class> class... THandlers>
+typename GenericRestBuilder<THandlers...>::Builder &GenericRestBuilder<THandlers...>::onResultAsync(std::function<void(RestReply)> callback)
+{
+	return onResultAsync(QThreadPool::globalInstance(), std::move(callback));
+}
+
+template <template <class> class... THandlers>
+typename GenericRestBuilder<THandlers...>::Builder &GenericRestBuilder<THandlers...>::onResultAsync(QThreadPool *threadPool, std::function<void(RestReply)> callback)
+{
+	return onResult([threadPool, cb = std::move(callback)](RestReply reply) {
+		threadPool->start(new __private::RestReplyRunnable<THandlers...>{cb, std::move(reply)});
+	});
+}
+
+template <template <class> class... THandlers>
 QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::sendAsync() const
 {
 	Q_ASSERT_X(!this->d->resultCallback, Q_FUNC_INFO, "Cannot use result callback with sendAsync");
-	QFutureInterface<RestReply<THandlers...>> fi;
+	QFutureInterface<RestReply> fi;
 	fi.reportStarted();
-	onResult([fi](const RestReply<THandlers...> &reply) mutable {
+	onResult([fi](const RestReply &reply) mutable {
 		fi.reportFinished(&reply);
 	});
 	this->send();
-	return QFuture<RestReply<THandlers...>>{&fi};
+	return QFuture<RestReply>{&fi};
 }
 #endif
 

@@ -1,5 +1,6 @@
 #include "restreply.h"
 #include <optional>
+#include <QtCore/QThread>
 using namespace QtRest;
 
 Q_LOGGING_CATEGORY(QtRest::logReply, "qtrest.RestReply", QtInfoMsg)
@@ -8,7 +9,7 @@ namespace QtRest {
 
 void deleteReplyLater(QNetworkReply *reply)
 {
-	reply->deleteLater();
+	QMetaObject::invokeMethod(reply, "deleteLater", Qt::AutoConnection);
 }
 
 class RestReplyData : public QSharedData

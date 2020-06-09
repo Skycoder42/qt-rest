@@ -5,6 +5,9 @@
 #include <variant>
 
 #include <QtCore/QLoggingCategory>
+#ifdef QT_REST_USE_ASYNC
+#include <QtCore/QRunnable>
+#endif
 
 namespace QtRest::__private {
 
@@ -48,6 +51,39 @@ struct QTREST_EXPORT RestBuilderData : public QSharedData
 	QSslConfiguration sslConfig;
 #endif
 };
+
+#ifdef QT_REST_USE_ASYNC
+class QTREST_EXPORT RawRestReplyRunnable : public QRunnable
+{
+public:
+	RawRestReplyRunnable(std::function<void(RawRestReply)> callback,
+						 RawRestReply &&reply);
+	void run() override;
+
+private:
+	std::function<void(RawRestReply)> _callback;
+	RawRestReply _reply;
+};
+
+template <template <class> class... THandlers>
+class RestReplyRunnable : public QRunnable
+{
+public:
+	inline RestReplyRunnable(std::function<void(RestReply<THandlers...>)> callback,
+					  RestReply<THandlers...> &&reply) :
+		_callback{std::move(callback)},
+		_reply{std::move(reply)}
+	{}
+
+	void run() override {
+		_callback(_reply);
+	}
+
+private:
+	std::function<void(RestReply<THandlers...>)> _callback;
+	RestReply<THandlers...> _reply;
+};
+#endif
 
 Q_DECLARE_LOGGING_CATEGORY(logBuilder)
 

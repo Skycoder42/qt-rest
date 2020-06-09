@@ -10,6 +10,7 @@
 #include <QtCore/QMimeType>
 #include <QtCore/QVariant>
 #ifdef QT_REST_USE_ASYNC
+#include <QtCore/QThreadPool>
 #include <QtCore/QFuture>
 #endif
 
@@ -114,6 +115,10 @@ public:
 
 	Builder &setVerb(QByteArray verb);
 	Builder &onResult(std::function<void(RawRestReply)> callback);
+#ifdef QT_REST_USE_ASYNC
+	Builder &onResultAsync(std::function<void(RawRestReply)> callback);
+	Builder &onResultAsync(QThreadPool *threadPool, std::function<void(RawRestReply)> callback);
+#endif
 
 	QUrl buildUrl() const;
 	QNetworkRequest build() const;
@@ -145,6 +150,10 @@ public:
 	Builder& setBody(T &&body, bool setAccept = true);
 
 	Builder &onResult(std::function<void(RestReply)> callback);
+#ifdef QT_REST_USE_ASYNC
+	Builder &onResultAsync(std::function<void(RestReply)> callback);
+	Builder &onResultAsync(QThreadPool *threadPool, std::function<void(RestReply)> callback);
+#endif
 
 #ifdef QT_REST_USE_ASYNC
 	QFuture<RestReply> sendAsync() const;
