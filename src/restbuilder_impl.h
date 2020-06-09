@@ -435,6 +435,48 @@ QNetworkReply *RawRestBuilder<TBuilder>::send(QObject *context) const
 	return reply;
 }
 
+template <typename TBuilder>
+QNetworkReply *RawRestBuilder<TBuilder>::get(QObject *context) const
+{
+	return setVerb(Verbs::GET)
+		.send(context);
+}
+
+template <typename TBuilder>
+QNetworkReply *RawRestBuilder<TBuilder>::post(QObject *context) const
+{
+	return setVerb(Verbs::POST)
+		.send(context);
+}
+
+template <typename TBuilder>
+QNetworkReply *RawRestBuilder<TBuilder>::put(QObject *context) const
+{
+	return setVerb(Verbs::PUT)
+		.send(context);
+}
+
+template <typename TBuilder>
+QNetworkReply *RawRestBuilder<TBuilder>::deleteResource(QObject *context) const
+{
+	return setVerb(Verbs::DELETE)
+		.send(context);
+}
+
+template <typename TBuilder>
+QNetworkReply *RawRestBuilder<TBuilder>::patch(QObject *context) const
+{
+	return setVerb(Verbs::PATCH)
+		.send(context);
+}
+
+template <typename TBuilder>
+QNetworkReply *RawRestBuilder<TBuilder>::head(QObject *context) const
+{
+	return setVerb(Verbs::HEAD)
+		.send(context);
+}
+
 #ifdef QT_REST_USE_ASYNC
 template<typename TBuilder>
 QFuture<RawRestReply> RawRestBuilder<TBuilder>::sendAsync() const
@@ -447,6 +489,48 @@ QFuture<RawRestReply> RawRestBuilder<TBuilder>::sendAsync() const
 	});
 	send();
 	return QFuture<RawRestReply>{&fi};
+}
+
+template <typename TBuilder>
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::getAsync() const
+{
+	return setVerb(Verbs::GET)
+		.sendAsync();
+}
+
+template <typename TBuilder>
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::postAsync() const
+{
+	return setVerb(Verbs::POST)
+		.sendAsync();
+}
+
+template <typename TBuilder>
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::putAsync() const
+{
+	return setVerb(Verbs::PUT)
+		.sendAsync();
+}
+
+template <typename TBuilder>
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::deleteResourceAsync() const
+{
+	return setVerb(Verbs::DELETE)
+		.sendAsync();
+}
+
+template <typename TBuilder>
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::patchAsync() const
+{
+	return setVerb(Verbs::PATCH)
+		.sendAsync();
+}
+
+template <typename TBuilder>
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::headAsync() const
+{
+	return setVerb(Verbs::HEAD)
+		.sendAsync();
 }
 #endif
 
@@ -514,6 +598,48 @@ QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::sendAsync() c
 	});
 	this->send();
 	return QFuture<RestReply>{&fi};
+}
+
+template <template <class> class... THandlers>
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::getAsync() const
+{
+	return this->setVerb(Verbs::GET)
+		.sendAsync();
+}
+
+template <template <class> class... THandlers>
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::postAsync() const
+{
+	return this->setVerb(Verbs::POST)
+		.sendAsync();
+}
+
+template <template <class> class... THandlers>
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::putAsync() const
+{
+	return this->setVerb(Verbs::PUT)
+		.sendAsync();
+}
+
+template <template <class> class... THandlers>
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::deleteResourceAsync() const
+{
+	return this->setVerb(Verbs::DELETE)
+		.sendAsync();
+}
+
+template <template <class> class... THandlers>
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::patchAsync() const
+{
+	return this->setVerb(Verbs::PATCH)
+		.sendAsync();
+}
+
+template <template <class> class... THandlers>
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::headAsync() const
+{
+	return this->setVerb(Verbs::HEAD)
+		.sendAsync();
 }
 #endif
 

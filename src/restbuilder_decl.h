@@ -114,6 +114,7 @@ public:
 	Builder &addPostParameters(QUrlQuery parameters, bool replace = false);
 
 	Builder &setVerb(QByteArray verb);
+
 	Builder &onResult(std::function<void(RawRestReply)> callback);
 #ifdef QT_REST_USE_ASYNC
 	Builder &onResultAsync(std::function<void(RawRestReply)> callback);
@@ -123,9 +124,21 @@ public:
 	QUrl buildUrl() const;
 	QNetworkRequest build() const;
 	QNetworkReply *send(QObject *context = nullptr) const;
+	QNetworkReply *get(QObject *context = nullptr) const;
+	QNetworkReply *post(QObject *context = nullptr) const;
+	QNetworkReply *put(QObject *context = nullptr) const;
+	QNetworkReply *deleteResource(QObject *context = nullptr) const;
+	QNetworkReply *patch(QObject *context = nullptr) const;
+	QNetworkReply *head(QObject *context = nullptr) const;
 
 #ifdef QT_REST_USE_ASYNC
 	QFuture<RawRestReply> sendAsync() const;
+	QFuture<RawRestReply> getAsync() const;
+	QFuture<RawRestReply> postAsync() const;
+	QFuture<RawRestReply> putAsync() const;
+	QFuture<RawRestReply> deleteResourceAsync() const;
+	QFuture<RawRestReply> patchAsync() const;
+	QFuture<RawRestReply> headAsync() const;
 #endif
 
 protected:
@@ -157,6 +170,12 @@ public:
 
 #ifdef QT_REST_USE_ASYNC
 	QFuture<RestReply> sendAsync() const;
+	QFuture<RestReply> getAsync() const;
+	QFuture<RestReply> postAsync() const;
+	QFuture<RestReply> putAsync() const;
+	QFuture<RestReply> deleteResourceAsync() const;
+	QFuture<RestReply> patchAsync() const;
+	QFuture<RestReply> headAsync() const;
 #endif
 
 protected:
