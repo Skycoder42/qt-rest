@@ -1,6 +1,7 @@
 #pragma once
 
 #include "qtrest_global.h"
+#include "qtrest_exceptions.h"
 #include "contenthandler.h"
 
 #include <tuple>
@@ -11,6 +12,7 @@
 #include <QtCore/QTextCodec>
 #include <QtCore/QExplicitlySharedDataPointer>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QSharedPointer>
 
 #include <QtNetwork/QNetworkReply>
 
@@ -26,11 +28,12 @@ class QTREST_EXPORT RawRestReply
 
     Q_PROPERTY(bool successful READ wasSuccessful STORED false CONSTANT)
     Q_PROPERTY(int status READ status CONSTANT)
+    Q_PROPERTY(QNetworkReply::NetworkError error READ error CONSTANT)
     Q_PROPERTY(QByteArray contentType READ contentType CONSTANT)
     Q_PROPERTY(QTextCodec contentCodec READ contentCodec CONSTANT)
     Q_PROPERTY(qint64 contentLength READ contentLength CONSTANT)
 
-    Q_PROPERTY(QNetworkReply* reply READ reply CONSTANT)
+    Q_PROPERTY(QWeakPointer<QNetworkReply> reply READ reply CONSTANT)
 
 public:
     RawRestReply(QNetworkReply *reply = nullptr);
@@ -59,11 +62,11 @@ public:
 
     bool wasSuccessful() const;
     int status() const;
+    QNetworkReply::NetworkError error() const;
     QByteArray contentType() const;
     QTextCodec *contentCodec() const;
     qint64 contentLength() const;
-    QNetworkReply* reply() const;
-
+    QWeakPointer<QNetworkReply> reply() const;
 
     template <template<class> class... THandlers>
     inline RestReply<THandlers...> toGeneric(ContentHandlerArgs<THandlers>... args) const {
@@ -75,7 +78,9 @@ public:
         return RestReply<THandlers...>{std::move(args), *this};
     }
 
-private:
+    RawRestReply clone() const;
+
+protected:
     QExplicitlySharedDataPointer<RestReplyData> d;
 };
 
@@ -105,6 +110,12 @@ public:
         }, handler);
     }
 
+    RestReply<THandlers...> clone() const {
+        RestReply<THandlers...> copy{*this};
+        copy.d.detach();
+        return copy;
+    }
+
 private:
     std::tuple<ContentHandlerArgs<THandlers>...> _initArgs;
 
@@ -115,7 +126,7 @@ private:
 
     template <typename T>
     HandlerVariant<T> findHandler() const {
-        throw nullptr; // TODO
+        throw MissingContentHandlerException{this->contentType()};
     }
 
     template <typename T, template<class> class THandler, template<class> class... TOthers>

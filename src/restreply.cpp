@@ -1,16 +1,20 @@
 #include "restreply.h"
 #include <optional>
-#include <QtCore/QPointer>
 using namespace QtRest;
 
 Q_LOGGING_CATEGORY(QtRest::logReply, "qtrest.RestReply")
 
 namespace QtRest {
 
+void deleteReplyLater(QNetworkReply *reply)
+{
+    reply->deleteLater();
+}
+
 class RestReplyData : public QSharedData
 {
 public:
-    QPointer<QNetworkReply> reply;
+    QSharedPointer<QNetworkReply> reply;
 
     mutable std::optional<int> statusCode = std::nullopt;
     mutable std::optional<qint64> contentLength = std::nullopt;
@@ -25,7 +29,7 @@ public:
 RawRestReply::RawRestReply(QNetworkReply *reply) :
     d{new RestReplyData{}}
 {
-    d->reply = reply;
+    d->reply = QSharedPointer<QNetworkReply>{reply, deleteReplyLater};
 }
 
 RawRestReply::RawRestReply(const RawRestReply &other) = default;
@@ -55,7 +59,7 @@ QVariant RawRestReply::attribute(QNetworkRequest::Attribute attribute) const
 
 QIODevice *RawRestReply::bodyDevice() const
 {
-    return d->reply;
+    return d->reply.data();
 }
 
 QByteArray RawRestReply::bodyData()
@@ -73,7 +77,7 @@ QString RawRestReply::bodyString()
 
 bool RawRestReply::wasSuccessful() const
 {
-    return status() < 300;
+    return error() == QNetworkReply::NoError && status() < 300;
 }
 
 int RawRestReply::status() const
@@ -81,6 +85,11 @@ int RawRestReply::status() const
     if (!d->statusCode)
         d->statusCode = d->reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     return *d->statusCode;
+}
+
+QNetworkReply::NetworkError RawRestReply::error() const
+{
+    return d->reply->error();
 }
 
 QByteArray RawRestReply::contentType() const
@@ -104,9 +113,16 @@ qint64 RawRestReply::contentLength() const
     return *d->contentLength;
 }
 
-QNetworkReply *RawRestReply::reply() const
+QWeakPointer<QNetworkReply> RawRestReply::reply() const
 {
     return d->reply;
+}
+
+RawRestReply RawRestReply::clone() const
+{
+    RawRestReply copy {*this};
+    copy.d.detach();
+    return copy;
 }
 
 void RestReplyData::parseContentType()

@@ -3,6 +3,8 @@
 #include "restbuilder_decl.h"
 #include "restbuilder_data.h"
 
+#include "qtrest_exceptions.h"
+
 namespace QtRest {
 
 template <typename TBuilder>
@@ -119,8 +121,8 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::trailingSl
 template <typename TBuilder>
 typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addParameter(const QString &name, QVariant value)
 {
-    if (!value.convert(QMetaType::QString))
-        throw this;  // TODO
+    if (const auto oldType = value.userType(); !value.convert(QMetaType::QString))
+        throw UnconvertibleVariantException{oldType, value.userType()};
     d->query.addQueryItem(name, value.toString());
     return *static_cast<Builder*>(this);
 }
@@ -147,8 +149,8 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addParamet
 template <typename TBuilder>
 typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setFragment(QVariant fragment)
 {
-    if (!fragment.convert(QMetaType::QString))
-        throw this;  // TODO
+    if (const auto oldType = fragment.userType(); !fragment.convert(QMetaType::QString))
+        throw UnconvertibleVariantException{oldType, fragment.userType()};
     d->fragment = fragment.toString();
     return *static_cast<Builder*>(this);
 }
@@ -163,8 +165,8 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setFragmen
 template <typename TBuilder>
 typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addHeader(const QLatin1String &name, QVariant value)
 {
-    if (!value.convert(QMetaType::QString))
-        throw this;  // TODO
+    if (const auto oldType = value.userType(); !value.convert(QMetaType::QString))
+        throw UnconvertibleVariantException{oldType, value.userType()};
     d->headers.insert(name.latin1(), value.toString().toLatin1());
     return *static_cast<Builder*>(this);
 }
@@ -324,8 +326,8 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setVerb(QB
 template <typename TBuilder>
 typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addPostParameter(const QString &name, QVariant value)
 {
-    if (!value.convert(QMetaType::QString))
-        throw this;  // TODO
+    if (const auto oldType = value.userType(); !value.convert(QMetaType::QString))
+        throw UnconvertibleVariantException{oldType, value.userType()};
     if (!std::holds_alternative<QUrlQuery>(d->body))
         d->body = QUrlQuery{};
     std::get<QUrlQuery>(d->body).addQueryItem(name, value.toString());
