@@ -4,73 +4,73 @@ on: [push, pull_request]
 
 jobs:
   build:
-	strategy:
-	  fail-fast: false
-	  matrix:
-		version:
-		  - 5.15.0
-		platform:
-		  - gcc_64
-		  - android
-		  - wasm_32
-		  - msvc2019_64
-		  - msvc2019
-		  - winrt_x64_msvc2019
-		  - winrt_x86_msvc2019
-		  - winrt_armv7_msvc2019
-		  - mingw81_64
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 5.15.0
+        platform:
+          - gcc_64
+          - android
+          - wasm_32
+          - msvc2019_64
+          - msvc2019
+          - winrt_x64_msvc2019
+          - winrt_x86_msvc2019
+          - winrt_armv7_msvc2019
+          - mingw81_64
 #          - mingw81_32
-		  - clang_64
-		  - ios
+          - clang_64
+          - ios
 
-		include:
-		  - platform: gcc_64
-			os: ubuntu-latest
-		  - platform: android
-			os: ubuntu-latest
-		  - platform: wasm_32
-			os: ubuntu-latest
-			emsdk: sdk-fastcomp-1.39.8-64bit
-		  - platform: msvc2019_64
-			os: windows-latest
-		  - platform: msvc2019
-			os: windows-latest
-		  - platform: winrt_x64_msvc2019
-			os: windows-latest
-		  - platform: winrt_x86_msvc2019
-			os: windows-latest
-		  - platform: winrt_armv7_msvc2019
-			os: windows-latest
-		  - platform: mingw81_64
-			os: windows-latest
-		  - platform: mingw81_32
-			os: windows-latest
-		  - platform: clang_64
-			os: macos-latest
-		  - platform: ios
-			os: macos-latest
+        include:
+          - platform: gcc_64
+            os: ubuntu-latest
+          - platform: android
+            os: ubuntu-latest
+          - platform: wasm_32
+            os: ubuntu-latest
+            emsdk: sdk-fastcomp-1.39.8-64bit
+          - platform: msvc2019_64
+            os: windows-latest
+          - platform: msvc2019
+            os: windows-latest
+          - platform: winrt_x64_msvc2019
+            os: windows-latest
+          - platform: winrt_x86_msvc2019
+            os: windows-latest
+          - platform: winrt_armv7_msvc2019
+            os: windows-latest
+          - platform: mingw81_64
+            os: windows-latest
+          - platform: mingw81_32
+            os: windows-latest
+          - platform: clang_64
+            os: macos-latest
+          - platform: ios
+            os: macos-latest
 
-	runs-on: ${{matrix.os}}
-	steps:
-	  - uses: actions/checkout@v1
-		with:
-		  submodules: recursive
-	  - uses: actions/setup-python@v1
-	  - uses: mymindstorm/setup-emsdk@v5
-		if: matrix.platform == 'wasm_32'
-		with:
-		  version: ${{matrix.emsdk}}
-		  actions-cache-folder: emsdk-cache
-	  - uses: Skycoder42/action-setup-qt@master
-		id: qt
-		with:
-		  version: ${{matrix.version}}
-		  platform: ${{matrix.platform}}
-	  - name: qmake
-		run: qmake CONFIG+=install_ok QT_PLATFORM=${{matrix.platform}}
-	  - name: make qmake_all
-		run: ${{steps.qt.outputs.make}} qmake_all
-	  - name: make
-		run: ${{steps.qt.outputs.make}}
-	  - name: make check
-		run: ${{steps.qt.outputs.make}} ${{steps.qt.outputs.testflags}} check
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v1
+      - uses: mymindstorm/setup-emsdk@v5
+        if: matrix.platform == 'wasm_32'
+        with:
+          version: ${{matrix.emsdk}}
+          actions-cache-folder: emsdk-cache
+      - uses: Skycoder42/action-setup-qt@master
+        id: qt
+        with:
+          version: ${{matrix.version}}
+          platform: ${{matrix.platform}}
+      - name: qmake
+        run: qmake CONFIG+=install_ok QT_PLATFORM=${{matrix.platform}}
+      - name: make qmake_all
+        run: ${{steps.qt.outputs.make}} qmake_all
+      - name: make
+        run: ${{steps.qt.outputs.make}}
+      - name: make check
+        run: ${{steps.qt.outputs.make}} ${{steps.qt.outputs.testflags}} check
