@@ -54,7 +54,7 @@ public:
     }
 
     Q_INVOKABLE QIODevice *bodyDevice() const;
-    Q_INVOKABLE QByteArray body();
+    Q_INVOKABLE QByteArray bodyData();
     Q_INVOKABLE QString bodyString();
 
     bool wasSuccessful() const;
@@ -67,7 +67,12 @@ public:
 
     template <template<class> class... THandlers>
     inline RestReply<THandlers...> toGeneric(ContentHandlerArgs<THandlers>... args) const {
-        return RestReply<THandlers...>{std::move(args)..., *this};
+        return RestReply<THandlers...>{std::make_tuple(std::move(args)...), *this};
+    }
+
+    template <template<class> class... THandlers>
+    inline RestReply<THandlers...> toGeneric(std::tuple<ContentHandlerArgs<THandlers>...> &&args) const {
+        return RestReply<THandlers...>{std::move(args), *this};
     }
 
 private:
@@ -84,9 +89,9 @@ private:
     using HandlerVariant = std::variant<THandlers<T>...>;
 
 public:
-    RestReply(ContentHandlerArgs<THandlers>... args, QNetworkReply *reply = nullptr) :
+    RestReply(std::tuple<ContentHandlerArgs<THandlers>...> &&args, QNetworkReply *reply = nullptr) :
         RawRestReply{reply},
-        _initArgs{std::make_tuple(std::move(args)...)}
+        _initArgs{std::move(args)}
     {}
 
     template <typename T>
@@ -96,7 +101,7 @@ public:
             if constexpr (std::decay_t<decltype(handler)>::IsStringHandler)
                 return handler.read(this->bodyString(), this->contentType());
             else
-                return handler.read(this->RawRestReply::body(), this->contentType(), this->contentCodec());
+                return handler.read(this->bodyData(), this->contentType(), this->contentCodec());
         }, handler);
     }
 
@@ -117,7 +122,7 @@ private:
     HandlerVariant<T> findHandler() const {
         THandler<T> handler(std::get<ContentHandlerArgs<THandler>>(_initArgs));
         if (handler.contentTypes().contains(this->contentType()))
-            return handler;
+            return std::move(handler);
         else
             return findHandler<T, TOthers...>();
     }

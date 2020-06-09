@@ -58,7 +58,7 @@ QIODevice *RawRestReply::bodyDevice() const
     return d->reply;
 }
 
-QByteArray RawRestReply::body()
+QByteArray RawRestReply::bodyData()
 {
     return d->reply->readAll();
 }
@@ -66,9 +66,9 @@ QByteArray RawRestReply::body()
 QString RawRestReply::bodyString()
 {
     if (const auto codec = contentCodec(); codec)
-        return codec->toUnicode(body());
+        return codec->toUnicode(bodyData());
     else
-        return QString::fromUtf8(body());
+        return QString::fromUtf8(bodyData());
 }
 
 bool RawRestReply::wasSuccessful() const
@@ -126,59 +126,4 @@ void RestReplyData::parseContentType()
                 qCWarning(logReply) << "Unknown content type directive:" << args[0];
         }
     }
-}
-
-
-
-// TODO remove compile test
-
-template <typename T>
-class ContentHandler1;
-
-template <>
-struct ContentHandlerArgs<ContentHandler1> {
-    int id;
-};
-
-template <typename T>
-class ContentHandler1 : public IByteArrayContentHandler<T>
-{
-public:
-    using WriteResult = typename IByteArrayContentHandler<T>::WriteResult;
-
-    ContentHandler1(ContentHandlerArgs<ContentHandler1>) {}
-
-    QByteArrayList contentTypes() const override { return {}; };
-
-    WriteResult write(const T &) override { return std::make_pair("", ""); };
-    T read(const QByteArray &, const QByteArray &, QTextCodec * = nullptr) override { return T{}; };
-};
-
-template <typename T>
-class ContentHandler2;
-
-template <>
-struct ContentHandlerArgs<ContentHandler2> {};
-
-template <typename T>
-class ContentHandler2 : public IStringContentHandler<T>
-{
-public:
-    using WriteResult = typename IStringContentHandler<T>::WriteResult;
-
-    ContentHandler2(ContentHandlerArgs<ContentHandler2>) {}
-
-    QByteArrayList contentTypes() const override { return {}; };
-
-    WriteResult write(const T &) override { return std::make_pair("", ""); };
-    T read(const QString &, const QByteArray &) override { return T{}; };
-};
-
-RestReply<ContentHandler1, ContentHandler2> reply {
-    { 42 },
-    {}
-};
-
-void xxx() {
-    reply.body<QString>();
 }

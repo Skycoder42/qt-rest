@@ -1,17 +1,15 @@
 #pragma once
 
-#include "restbuilder.h"
+#include "restbuilder_decl.h"
 
 #include <variant>
 
 #include <QtCore/QLoggingCategory>
 
-namespace QtRest {
+namespace QtRest::__private {
 
 struct QTREST_EXPORT RestBuilderData : public QSharedData
 {
-    using ResultCallback = RawRestBuilder::RawResultCallback;
-
     static const QLatin1String AcceptHeader;
     static const QLatin1String ContentTypeHeader;
 
@@ -28,8 +26,7 @@ struct QTREST_EXPORT RestBuilderData : public QSharedData
     AttributeMap attributes;
     std::variant<QByteArray, QIODevice*, QUrlQuery> body;
     QByteArray verb = Verbs::GET;
-
-    QList<ResultCallback> resultCallbacks;
+    std::function<void(RawRestReply)> resultCallback;
 
 #ifndef QT_NO_SSL
     QSslConfiguration sslConfig;

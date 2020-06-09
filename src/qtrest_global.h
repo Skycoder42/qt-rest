@@ -23,3 +23,14 @@ struct QTREST_EXPORT Verbs
 
 Q_DECLARE_METATYPE(QtRest::HeaderMap)
 Q_DECLARE_METATYPE(QtRest::AttributeMap)
+
+#define Q_DECLARE_GENERIC_OPERATORS_FOR_FLAGS(Flags, ...) \
+    template <__VA_ARGS__> \
+    Q_DECL_CONSTEXPR inline QFlags<typename Flags::enum_type> operator|(typename Flags::enum_type f1, typename Flags::enum_type f2) noexcept \
+    { return QFlags<typename Flags::enum_type>(f1) | f2; } \
+    template <__VA_ARGS__> \
+    Q_DECL_CONSTEXPR inline QFlags<typename Flags::enum_type> operator|(typename Flags::enum_type f1, QFlags<typename Flags::enum_type> f2) noexcept \
+    { return f2 | f1; } \
+    template <__VA_ARGS__> \
+    Q_DECL_CONSTEXPR inline QIncompatibleFlag operator|(typename Flags::enum_type f1, int f2) noexcept \
+    { return QIncompatibleFlag(int(f1) | f2); }

@@ -5,7 +5,9 @@ HEADERS += \
 	$$PWD/src/jsoncontenthandler.h \
 	$$PWD/src/qtrest_global.h \
 	$$PWD/src/restbuilder.h \
-	$$PWD/src/restbuilder_p.h \
+	$$PWD/src/restbuilder_data.h \
+	$$PWD/src/restbuilder_decl.h \
+	$$PWD/src/restbuilder_impl.h \
 	$$PWD/src/restreply.h
 
 SOURCES += \
