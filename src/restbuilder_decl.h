@@ -2,6 +2,7 @@
 
 #include "qtrest_global.h"
 #include "restreply.h"
+#include "irestextender.h"
 
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
@@ -62,8 +63,11 @@ public:
 	GenericRestBuilder<THandler> addContentTypeHandler(TArgs&&... args);
 
 	Builder &setNetworkAccessManager(QNetworkAccessManager *nam);
-	Builder &setBaseUrl(QUrl baseUrl);
+	Builder &addExtender(IRestExtender *extender);
+	template <typename TExtender>
+	Builder &addExtender();
 
+	Builder &setBaseUrl(QUrl baseUrl);
 	Builder &setScheme(const QString &scheme);
 	Builder &setUser(const QString &user);
 	Builder &setPassword(const QString &password);

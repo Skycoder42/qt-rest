@@ -2,6 +2,7 @@ CONFIG += c++17 exceptions
 
 HEADERS += \
 	$$PWD/src/contenthandler.h \
+	$$PWD/src/irestextender.h \
 	$$PWD/src/jsoncontenthandler.h \
 	$$PWD/src/qtrest_exceptions.h \
 	$$PWD/src/qtrest_global.h \
@@ -12,6 +13,7 @@ HEADERS += \
 	$$PWD/src/restreply.h
 
 SOURCES += \
+	$$PWD/src/irestextender.cpp \
 	$$PWD/src/jsoncontenthandler.cpp \
 	$$PWD/src/qtrest_exceptions.cpp \
 	$$PWD/src/restbuilder.cpp \

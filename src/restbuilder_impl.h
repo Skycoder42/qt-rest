@@ -30,12 +30,26 @@ GenericRestBuilder<THandler> RawRestBuilder<TBuilder>::addContentTypeHandler(TAr
 	};
 }
 
-
 template <typename TBuilder>
 typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setNetworkAccessManager(QNetworkAccessManager *nam)
 {
 	d->nam = nam;
 	return *static_cast<Builder*>(this);
+}
+
+template <typename TBuilder>
+typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addExtender(IRestExtender *extender)
+{
+	d->extenders.append(QSharedPointer<IRestExtender>{extender});
+	return *static_cast<Builder*>(this);
+}
+
+template <typename TBuilder>
+template <typename TExtender>
+typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addExtender()
+{
+	static_assert(std::is_base_of_v<IRestExtender, TExtender>, "TExtender must implement IRestExtender");
+	return addExtender(new TExtender{});
 }
 
 template <typename TBuilder>
@@ -394,9 +408,11 @@ QUrl RawRestBuilder<TBuilder>::buildUrl() const
 	if (!d->fragment.isNull())
 		url.setFragment(d->fragment);
 
+	for (const auto &extender : d->extenders)
+		extender->extendUrl(url);
+
 	qCDebug(__private::logBuilder) << "Built URL as"
 								   << url.toString(QUrl::PrettyDecoded | QUrl::RemoveUserInfo);
-
 	return url;
 }
 
@@ -413,6 +429,9 @@ QNetworkRequest RawRestBuilder<TBuilder>::build() const
 	request.setSslConfiguration(d->sslConfig);
 #endif
 
+	for (const auto &extender : d->extenders)
+		extender->extendRequest(request);
+
 	qCDebug(__private::logBuilder) << "Created request with headers"
 								   << d->headers.keys()
 								   << "and attributes" << d->attributes.keys();
@@ -423,8 +442,13 @@ QNetworkRequest RawRestBuilder<TBuilder>::build() const
 template <typename TBuilder>
 QNetworkReply *RawRestBuilder<TBuilder>::send(QObject *context) const
 {
-	QNetworkRequest request{buildUrl()};
-	const auto reply = std::visit(__private::SendBodyVisitor{request, d->verb, d->nam}, d->body);
+	auto verb = d->verb;
+	auto body = d->body;
+
+	for (const auto &extender : d->extenders)
+		extender->extendSend(verb, body);
+
+	const auto reply = std::visit(__private::SendBodyVisitor{build(), verb, d->nam}, body);
 	if (d->resultCallback) {
 		QObject::connect(reply, &QNetworkReply::finished,
 						 context ? context : reply,

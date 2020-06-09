@@ -14,16 +14,16 @@ namespace QtRest::__private {
 class QTREST_EXPORT SendBodyVisitor
 {
 public:
-	SendBodyVisitor(QNetworkRequest &request,
+	SendBodyVisitor(QNetworkRequest &&request,
 					const QByteArray &verb,
 					QNetworkAccessManager *nam);
 
-	QNetworkReply *operator()(const QByteArray &data) const;
-	QNetworkReply *operator()(QIODevice *device) const;
-	QNetworkReply *operator()(const QUrlQuery &postParams) const;
+	QNetworkReply *operator()(const QByteArray &data);
+	QNetworkReply *operator()(QIODevice *device);
+	QNetworkReply *operator()(const QUrlQuery &postParams);
 
 private:
-	QNetworkRequest &request;
+	QNetworkRequest request;
 	const QByteArray &verb;
 	QNetworkAccessManager *nam;
 };
@@ -36,6 +36,8 @@ struct QTREST_EXPORT RestBuilderData : public QSharedData
 	static const QByteArray ContentTypeUrlEncoded;
 
 	QNetworkAccessManager *nam = nullptr;
+	QList<QSharedPointer<IRestExtender>> extenders;
+
 	QUrl baseUrl;
 	QStringList pathSegments;
 	bool trailingSlash = false;
