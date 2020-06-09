@@ -43,8 +43,8 @@ jobs:
             os: windows-latest
           - platform: mingw81_64
             os: windows-latest
-          - platform: mingw81_32
-            os: windows-latest
+#          - platform: mingw81_32
+#            os: windows-latest
           - platform: clang_64
             os: macos-latest
           - platform: ios
