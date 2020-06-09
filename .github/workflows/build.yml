@@ -30,7 +30,7 @@ jobs:
 			os: ubuntu-latest
 		  - platform: wasm_32
 			os: ubuntu-latest
-			emsdk: sdk-fastcomp-1.38.27-64bit
+			emsdk: sdk-fastcomp-1.39.8-64bit
 		  - platform: msvc2019_64
 			os: windows-latest
 		  - platform: msvc2019
@@ -56,13 +56,7 @@ jobs:
 		with:
 		  submodules: recursive
 	  - uses: actions/setup-python@v1
-	  - name: actions/cache emsdk
-		uses: actions/cache@v1
-		if: matrix.platform == 'wasm_32'
-		with:
-		  path: emsdk-cache
-		  key: ${{runner.os}}-emsdk-${{matrix.emsdk}}
-	  - uses: mymindstorm/setup-emsdk@v3
+	  - uses: mymindstorm/setup-emsdk@v5
 		if: matrix.platform == 'wasm_32'
 		with:
 		  version: ${{matrix.emsdk}}
