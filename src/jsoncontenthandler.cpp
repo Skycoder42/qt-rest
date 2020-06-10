@@ -3,21 +3,24 @@ using namespace QtRest;
 
 const QByteArray ContentHandlerArgs<JsonContentHandler>::ContentType = "application/json";
 
-QtRest::JsonContentHandler<QJsonValue>::JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
+
+
+JsonContentHandler<QJsonValue>::JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
     _format{std::move(args.format)}
 {}
 
-QByteArrayList QtRest::JsonContentHandler<QJsonValue>::contentTypes() const
+QByteArrayList JsonContentHandler<QJsonValue>::contentTypes() const
 {
     return {ContentHandlerArgs<JsonContentHandler>::ContentType};
 }
 
-QtRest::JsonContentHandler<QJsonValue>::WriteResult QtRest::JsonContentHandler<QJsonValue>::write(const QJsonValue &data)
+JsonContentHandler<QJsonValue>::WriteResult JsonContentHandler<QJsonValue>::write(const QJsonValue &data)
 {
-    return std::make_pair(QtJson::writeJson(data, _format), ContentHandlerArgs<JsonContentHandler>::ContentType);
+    return std::make_pair(QtJson::writeJson(data, _format),
+                          ContentHandlerArgs<JsonContentHandler>::ContentType);
 }
 
-QJsonValue QtRest::JsonContentHandler<QJsonValue>::read(const QString &data, const QByteArray &contentType)
+QJsonValue JsonContentHandler<QJsonValue>::read(const QString &data, const QByteArray &contentType)
 {
     Q_UNUSED(contentType)
     return QtJson::readJson(data);
@@ -25,44 +28,50 @@ QJsonValue QtRest::JsonContentHandler<QJsonValue>::read(const QString &data, con
 
 
 
-QtRest::JsonContentHandler<QJsonObject>::JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
+JsonContentHandler<QJsonObject>::JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
     _format{std::move(args.format)}
 {}
 
-QByteArrayList QtRest::JsonContentHandler<QJsonObject>::contentTypes() const
+QByteArrayList JsonContentHandler<QJsonObject>::contentTypes() const
 {
     return {ContentHandlerArgs<JsonContentHandler>::ContentType};
 }
 
-QtRest::JsonContentHandler<QJsonObject>::WriteResult QtRest::JsonContentHandler<QJsonObject>::write(const QJsonObject &data)
+JsonContentHandler<QJsonObject>::WriteResult JsonContentHandler<QJsonObject>::write(const QJsonObject &data)
 {
     return std::make_pair(QtJson::writeJson(data, _format), ContentHandlerArgs<JsonContentHandler>::ContentType);
 }
 
-QJsonObject QtRest::JsonContentHandler<QJsonObject>::read(const QString &data, const QByteArray &contentType)
+QJsonObject JsonContentHandler<QJsonObject>::read(const QString &data, const QByteArray &contentType)
 {
     Q_UNUSED(contentType)
-    return QtJson::readJson(data).toObject();  // TODO assert is object
+    const auto json = QtJson::readJson(data);
+    if (!json.isObject())
+        throw QtJson::InvalidValueTypeException{json.type(), {QJsonValue::Object}};
+    return json.toObject();
 }
 
 
 
-QtRest::JsonContentHandler<QJsonArray>::JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
+JsonContentHandler<QJsonArray>::JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
     _format{std::move(args.format)}
 {}
 
-QByteArrayList QtRest::JsonContentHandler<QJsonArray>::contentTypes() const
+QByteArrayList JsonContentHandler<QJsonArray>::contentTypes() const
 {
     return {ContentHandlerArgs<JsonContentHandler>::ContentType};
 }
 
-QtRest::JsonContentHandler<QJsonArray>::WriteResult QtRest::JsonContentHandler<QJsonArray>::write(const QJsonArray &data)
+JsonContentHandler<QJsonArray>::WriteResult JsonContentHandler<QJsonArray>::write(const QJsonArray &data)
 {
     return std::make_pair(QtJson::writeJson(data, _format), ContentHandlerArgs<JsonContentHandler>::ContentType);
 }
 
-QJsonArray QtRest::JsonContentHandler<QJsonArray>::read(const QString &data, const QByteArray &contentType)
+QJsonArray JsonContentHandler<QJsonArray>::read(const QString &data, const QByteArray &contentType)
 {
     Q_UNUSED(contentType)
-    return QtJson::readJson(data).toArray();  // TODO assert is object
+    const auto json = QtJson::readJson(data);
+    if (!json.isArray())
+        throw QtJson::InvalidValueTypeException{json.type(), {QJsonValue::Array}};
+    return json.toArray();
 }

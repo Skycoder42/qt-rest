@@ -23,8 +23,7 @@ public:
     using WriteResult = typename IStringContentHandler<T>::WriteResult;
 
     JsonContentHandler(ContentHandlerArgs<JsonContentHandler> args) :
-        _config{std::move(args.config)},
-        _format{std::move(args.format)}
+        _config{std::move(args)}
     {}
 
     QByteArrayList contentTypes() const override {
@@ -32,17 +31,17 @@ public:
     }
 
     WriteResult write(const T &data) override {
-        return std::make_pair(QtJson::stringify(data, _config, _format), ContentHandlerArgs<JsonContentHandler>::ContentType);
+        return std::make_pair(QtJson::stringify(data, _config.config, _config.format),
+                              ContentHandlerArgs<JsonContentHandler>::ContentType);
     }
 
     T read(const QString &data, const QByteArray &contentType) override {
         Q_UNUSED(contentType)
-        return QtJson::parseString<T>(data, _config);
+        return QtJson::parseString<T>(data, _config.config);
     }
 
 private:
-    QtJson::Configuration _config;
-    QJsonDocument::JsonFormat _format;
+    ContentHandlerArgs<JsonContentHandler> _config;
 };
 
 template <>

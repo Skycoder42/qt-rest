@@ -2,8 +2,9 @@
 
 #include "restbuilder_decl.h"
 #include "restbuilder_data.h"
-
 #include "qtrest_exceptions.h"
+
+#include <QtCore/QBuffer>
 
 namespace QtRest {
 
@@ -330,11 +331,15 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setBody(QI
 	return addHeader(__private::RestBuilderData::ContentTypeHeader, contentType.name().toUtf8());
 }
 
-template <typename TBuilder>
-typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setVerb(QByteArray verb)
+template<typename TBuilder>
+QIODevice *RawRestBuilder<TBuilder>::createBodyDevice(const QByteArray &contentType, bool setAccept)
 {
-	d->verb = std::move(verb);
-	return *static_cast<Builder*>(this);
+    const auto buffer = new QBuffer{};
+    buffer->open(QIODevice::WriteOnly);
+    if (setAccept)
+        this->setAccept(contentType);
+    addHeader(__private::RestBuilderData::ContentTypeHeader, contentType);
+    return buffer;
 }
 
 template <typename TBuilder>
@@ -370,6 +375,13 @@ typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::addPostPar
 }
 
 template <typename TBuilder>
+typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::setVerb(QByteArray verb)
+{
+    d->verb = std::move(verb);
+    return *static_cast<Builder*>(this);
+}
+
+template <typename TBuilder>
 typename RawRestBuilder<TBuilder>::Builder &RawRestBuilder<TBuilder>::onResult(std::function<void(RawRestReply)> callback)
 {
 	d->resultCallback = std::move(callback);
@@ -397,7 +409,7 @@ QUrl RawRestBuilder<TBuilder>::buildUrl() const
 {
 	auto url = d->baseUrl;
 
-	auto pathList = url.path().split(QLatin1Char('/'), QString::SkipEmptyParts);
+    auto pathList = url.path().split(QLatin1Char('/'), Qt::SkipEmptyParts);
 	pathList.append(d->pathSegments);
 	url.setPath(QLatin1Char('/') +
 				pathList.join(QLatin1Char('/')) +
@@ -456,46 +468,53 @@ QNetworkReply *RawRestBuilder<TBuilder>::send(QObject *context) const
 							 cb(RawRestReply{reply});
 						 });
 	}
+
+    if (std::holds_alternative<QIODevice*>(body)) {
+        const auto device = std::get<QIODevice*>(body);
+        if (!device->parent())
+            device->setParent(reply);
+    }
+
 	return reply;
 }
 
 template <typename TBuilder>
-QNetworkReply *RawRestBuilder<TBuilder>::get(QObject *context) const
+QNetworkReply *RawRestBuilder<TBuilder>::get(QObject *context)
 {
 	return setVerb(Verbs::GET)
 		.send(context);
 }
 
 template <typename TBuilder>
-QNetworkReply *RawRestBuilder<TBuilder>::post(QObject *context) const
+QNetworkReply *RawRestBuilder<TBuilder>::post(QObject *context)
 {
 	return setVerb(Verbs::POST)
 		.send(context);
 }
 
 template <typename TBuilder>
-QNetworkReply *RawRestBuilder<TBuilder>::put(QObject *context) const
+QNetworkReply *RawRestBuilder<TBuilder>::put(QObject *context)
 {
 	return setVerb(Verbs::PUT)
 		.send(context);
 }
 
 template <typename TBuilder>
-QNetworkReply *RawRestBuilder<TBuilder>::deleteResource(QObject *context) const
+QNetworkReply *RawRestBuilder<TBuilder>::deleteResource(QObject *context)
 {
 	return setVerb(Verbs::DELETE)
 		.send(context);
 }
 
 template <typename TBuilder>
-QNetworkReply *RawRestBuilder<TBuilder>::patch(QObject *context) const
+QNetworkReply *RawRestBuilder<TBuilder>::patch(QObject *context)
 {
 	return setVerb(Verbs::PATCH)
 		.send(context);
 }
 
 template <typename TBuilder>
-QNetworkReply *RawRestBuilder<TBuilder>::head(QObject *context) const
+QNetworkReply *RawRestBuilder<TBuilder>::head(QObject *context)
 {
 	return setVerb(Verbs::HEAD)
 		.send(context);
@@ -503,55 +522,55 @@ QNetworkReply *RawRestBuilder<TBuilder>::head(QObject *context) const
 
 #ifdef QT_REST_USE_ASYNC
 template<typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::sendAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::sendAsync()
 {
 	Q_ASSERT_X(!d->resultCallback, Q_FUNC_INFO, "Cannot use result callback with sendAsync");
 	QFutureInterface<RawRestReply> fi;
 	fi.reportStarted();
 	onResult([fi](const RawRestReply &reply) mutable {
 		fi.reportFinished(&reply);
-	});
-	send();
+    })
+        .send();
 	return QFuture<RawRestReply>{&fi};
 }
 
 template <typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::getAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::getAsync()
 {
 	return setVerb(Verbs::GET)
 		.sendAsync();
 }
 
 template <typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::postAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::postAsync()
 {
 	return setVerb(Verbs::POST)
 		.sendAsync();
 }
 
 template <typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::putAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::putAsync()
 {
 	return setVerb(Verbs::PUT)
 		.sendAsync();
 }
 
 template <typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::deleteResourceAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::deleteResourceAsync()
 {
 	return setVerb(Verbs::DELETE)
 		.sendAsync();
 }
 
 template <typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::patchAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::patchAsync()
 {
 	return setVerb(Verbs::PATCH)
 		.sendAsync();
 }
 
 template <typename TBuilder>
-QFuture<RawRestReply> RawRestBuilder<TBuilder>::headAsync() const
+QFuture<RawRestReply> RawRestBuilder<TBuilder>::headAsync()
 {
 	return setVerb(Verbs::HEAD)
 		.sendAsync();
@@ -579,13 +598,14 @@ template <template <class> class... THandlers>
 template <template <class> class THandler, typename T>
 typename GenericRestBuilder<THandlers...>::Builder &GenericRestBuilder<THandlers...>::setBody(T &&body, bool setAccept)
 {
-	static_assert (std::disjunction_v<std::is_same<THandler<T>, THandlers<T>>...>, "THandler must be one of the registered content handlers");
-	THandler<T> handler {std::get<ContentHandlerArgs<THandler>>(_contentHandlerArgs)};
-	auto [data, contentType] = handler.write(std::forward<T>(body));
-	if constexpr (THandler<T>::IsStringHandler)
+    using TType = std::decay_t<T>;
+    static_assert (std::disjunction_v<std::is_same<THandler<TType>, THandlers<TType>>...>, "THandler must be one of the registered content handlers");
+    THandler<TType> handler {std::get<ContentHandlerArgs<THandler>>(_contentHandlerArgs)};
+    auto [data, contentType] = handler.write(std::forward<TType>(body));
+    if constexpr (THandler<TType>::IsStringHandler)
 		return setBody(data.toUtf8(), std::move(contentType), setAccept);
 	else
-		return setBody(std::move(data), std::move(contentType), setAccept);
+        return setBody(std::move(data), std::move(contentType), setAccept);
 }
 
 template <template <class> class... THandlers>
@@ -612,55 +632,55 @@ typename GenericRestBuilder<THandlers...>::Builder &GenericRestBuilder<THandlers
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::sendAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::sendAsync()
 {
 	Q_ASSERT_X(!this->d->resultCallback, Q_FUNC_INFO, "Cannot use result callback with sendAsync");
 	QFutureInterface<RestReply> fi;
 	fi.reportStarted();
 	onResult([fi](const RestReply &reply) mutable {
 		fi.reportFinished(&reply);
-	});
-	this->send();
+    })
+        .send();
 	return QFuture<RestReply>{&fi};
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::getAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::getAsync()
 {
 	return this->setVerb(Verbs::GET)
 		.sendAsync();
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::postAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::postAsync()
 {
 	return this->setVerb(Verbs::POST)
 		.sendAsync();
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::putAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::putAsync()
 {
 	return this->setVerb(Verbs::PUT)
 		.sendAsync();
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::deleteResourceAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::deleteResourceAsync()
 {
 	return this->setVerb(Verbs::DELETE)
 		.sendAsync();
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::patchAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::patchAsync()
 {
 	return this->setVerb(Verbs::PATCH)
 		.sendAsync();
 }
 
 template <template <class> class... THandlers>
-QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::headAsync() const
+QFuture<RestReply<THandlers...>> GenericRestBuilder<THandlers...>::headAsync()
 {
 	return this->setVerb(Verbs::HEAD)
 		.sendAsync();

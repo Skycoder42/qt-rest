@@ -111,6 +111,7 @@ public:
 	Builder &setBody(QByteArray body, const QMimeType &contentType, bool setAccept = true);
 	Builder &setBody(QIODevice *body, const QByteArray &contentType, bool setAccept = true);
 	Builder &setBody(QIODevice *body, const QMimeType &contentType, bool setAccept = true);
+    QIODevice *createBodyDevice(const QByteArray &contentType, bool setAccept = true);
 
 	Builder &addPostParameter(const QString &name, QVariant value);
 	template <typename T>
@@ -128,21 +129,21 @@ public:
 	QUrl buildUrl() const;
 	QNetworkRequest build() const;
 	QNetworkReply *send(QObject *context = nullptr) const;
-	QNetworkReply *get(QObject *context = nullptr) const;
-	QNetworkReply *post(QObject *context = nullptr) const;
-	QNetworkReply *put(QObject *context = nullptr) const;
-	QNetworkReply *deleteResource(QObject *context = nullptr) const;
-	QNetworkReply *patch(QObject *context = nullptr) const;
-	QNetworkReply *head(QObject *context = nullptr) const;
+    QNetworkReply *get(QObject *context = nullptr);
+    QNetworkReply *post(QObject *context = nullptr);
+    QNetworkReply *put(QObject *context = nullptr);
+    QNetworkReply *deleteResource(QObject *context = nullptr);
+    QNetworkReply *patch(QObject *context = nullptr);
+    QNetworkReply *head(QObject *context = nullptr);
 
 #ifdef QT_REST_USE_ASYNC
-	QFuture<RawRestReply> sendAsync() const;
-	QFuture<RawRestReply> getAsync() const;
-	QFuture<RawRestReply> postAsync() const;
-	QFuture<RawRestReply> putAsync() const;
-	QFuture<RawRestReply> deleteResourceAsync() const;
-	QFuture<RawRestReply> patchAsync() const;
-	QFuture<RawRestReply> headAsync() const;
+    QFuture<RawRestReply> sendAsync();
+    QFuture<RawRestReply> getAsync();
+    QFuture<RawRestReply> postAsync();
+    QFuture<RawRestReply> putAsync();
+    QFuture<RawRestReply> deleteResourceAsync();
+    QFuture<RawRestReply> patchAsync();
+    QFuture<RawRestReply> headAsync();
 #endif
 
 protected:
@@ -173,13 +174,13 @@ public:
 #endif
 
 #ifdef QT_REST_USE_ASYNC
-	QFuture<RestReply> sendAsync() const;
-	QFuture<RestReply> getAsync() const;
-	QFuture<RestReply> postAsync() const;
-	QFuture<RestReply> putAsync() const;
-	QFuture<RestReply> deleteResourceAsync() const;
-	QFuture<RestReply> patchAsync() const;
-	QFuture<RestReply> headAsync() const;
+    QFuture<RestReply> sendAsync();
+    QFuture<RestReply> getAsync();
+    QFuture<RestReply> postAsync();
+    QFuture<RestReply> putAsync();
+    QFuture<RestReply> deleteResourceAsync();
+    QFuture<RestReply> patchAsync();
+    QFuture<RestReply> headAsync();
 #endif
 
 protected:
